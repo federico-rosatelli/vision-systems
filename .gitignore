@@ -3,6 +3,7 @@ data/
 __pycache__/
 tboard*/
 *.tar.gz
+*.zip
 *.png
 *.jpg
 *.jpeg
