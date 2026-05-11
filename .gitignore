@@ -3,7 +3,12 @@ data/
 __pycache__/
 tboard*/
 *.tar.gz
+*.tar
+*.rar
 *.zip
 *.png
 *.jpg
 *.jpeg
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
