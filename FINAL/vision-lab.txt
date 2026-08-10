@@ -1,0 +1,10 @@
+shot-holing and pitting (yellow area)
+pitting > hole = more resistant
+number of oat on a leaf
+older plants will be easier to be eaten (bbch)
+more objective kind of damage quantification
+inside the frame treat each plant according to its area (bigger has more weight)
+
+ranking-based: don’t compare similar percentage damaged plants 
+
+write application to bender
