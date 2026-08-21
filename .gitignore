@@ -14,4 +14,5 @@ tboard*/
 .DS_Store
 stargan-v2/
 !FINAL/data/
-Exercise*/
+Exercise*
+tensorboard/
