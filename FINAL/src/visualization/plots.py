@@ -47,3 +47,53 @@ def plot_residuals(y_true, y_pred, save_path):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path, bbox_inches='tight', dpi=300)
     plt.close()
+
+def plot_training_history(csv_path, out_dir):
+    """
+    Reads the training_log.csv and generates various plots for training history.
+    """
+    import pandas as pd
+    if not os.path.exists(csv_path):
+        print(f"Error: {csv_path} not found.")
+        return
+        
+    df = pd.read_csv(csv_path)
+    os.makedirs(out_dir, exist_ok=True)
+    
+    # 1. Loss Plot
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x='epoch', y='train_loss', label='Train Loss', marker='o')
+    sns.lineplot(data=df, x='epoch', y='val_loss', label='Validation Loss', marker='o')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.savefig(os.path.join(out_dir, "loss_curve.png"), bbox_inches='tight', dpi=300)
+    plt.close()
+    
+    # 2. MAE Plot
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x='epoch', y='train_mae', label='Train MAE', marker='s', color='green')
+    sns.lineplot(data=df, x='epoch', y='val_mae', label='Validation MAE', marker='s', color='red')
+    plt.title('Mean Absolute Error (MAE) over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('MAE (%)')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.savefig(os.path.join(out_dir, "mae_curve.png"), bbox_inches='tight', dpi=300)
+    plt.close()
+    
+    # 3. Learning Rate Plot
+    if 'lr' in df.columns:
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=df, x='epoch', y='lr', color='orange', marker='^')
+        plt.title('Learning Rate Schedule')
+        plt.xlabel('Epoch')
+        plt.ylabel('Learning Rate')
+        plt.yscale('log')
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.savefig(os.path.join(out_dir, "lr_curve.png"), bbox_inches='tight', dpi=300)
+        plt.close()
+        
+    print(f"Training plots saved to {out_dir}")

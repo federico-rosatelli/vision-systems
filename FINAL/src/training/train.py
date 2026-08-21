@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from src.data.dataset import get_dataloaders
 from src.models.dinov3_regressor import DINOv3Regressor, get_loss_function
 from src.models.losses import JointRankingRegressionLoss
+from src.visualization.plots import plot_training_history
 
 def set_seed(seed):
     random.seed(seed)
@@ -178,4 +179,9 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     df_log.to_csv(csv_log_path, index=False)
     print(f"Training log saved to {csv_log_path}")
     writer.close()
+    
+    # Generate training plots automatically
+    plots_dir = os.path.join(out_dir, "plots")
+    plot_training_history(csv_log_path, plots_dir)
+    
     print("Training complete.")

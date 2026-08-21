@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from src.data.make_manifest import build_manifest
 from src.data.make_splits import create_splits
@@ -6,12 +7,13 @@ from src.training.train import train_model
 from src.evaluation.evaluate import evaluate_model
 from src.evaluation.genotype_ranking import rank_genotypes
 from src.inference.predict import predict_single_image
+from src.visualization.plots import plot_training_history
 from tests.test_pipeline import test_full_pipeline
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CSFB Damage Quantification Pipeline")
-    parser.add_argument("action", type=str, choices=["prepare_data", "train", "evaluate", "rank", "predict", "test", "all"], 
-                        help="Action to perform: prepare_data, train, evaluate, rank, predict, test, or all")
+    parser.add_argument("action", type=str, choices=["prepare_data", "train", "evaluate", "rank", "predict", "plot_logs", "test", "all"], 
+                        help="Action to perform: prepare_data, train, evaluate, rank, predict, plot_logs, test, or all")
     
     # Data preparation arguments
     parser.add_argument("--raw_dir", type=str, default="/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage", 
@@ -44,6 +46,10 @@ def parse_args():
     
     # Inference arguments
     parser.add_argument("--image", type=str, help="Path to the single image to analyze (for predict action)")
+    
+    # Plotting arguments
+    parser.add_argument("--log_file", type=str, default="outputs/logs/training_log.csv",
+                        help="Path to the training log CSV for plotting")
     
     return parser.parse_args()
 
@@ -94,6 +100,11 @@ def main():
             print("Error: --image is required for the predict action.")
         else:
             predict_single_image(args.image, args.model_path, args.image_size)
+            
+    if args.action == "plot_logs":
+        print("=== Plotting Training Logs ===")
+        plots_dir = os.path.join(args.out_dir, "plots")
+        plot_training_history(args.log_file, plots_dir)
         
     if args.action in ["test", "all"]:
         print("=== Step 5: Testing ===")
