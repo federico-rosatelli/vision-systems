@@ -1,0 +1,4 @@
+plot_group,true_score,pred_score,absolute_error
+plot_1,31.669104,15.223835,16.445269
+plot_8,16.990578,30.052858,13.062281
+plot_8,35.192135,18.177517,17.014618

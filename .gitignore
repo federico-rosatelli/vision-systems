@@ -12,3 +12,6 @@ tboard*/
 .vscode/
 .ipynb_checkpoints/
 .DS_Store
+stargan-v2/
+!FINAL/data/
+Exercise*/

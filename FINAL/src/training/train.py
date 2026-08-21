@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 
 from src.data.dataset import get_dataloaders
 from src.models.dinov3_regressor import DINOv3Regressor, get_loss_function
+from src.models.losses import JointRankingRegressionLoss
 
 def set_seed(seed):
     random.seed(seed)
@@ -21,10 +22,9 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10, out_dir="outputs", seed=42, num_workers=4, image_size=224):
+def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10, out_dir="outputs", seed=42, num_workers=4, image_size=224, training_mode="regression"):
     set_seed(seed)
     
-    # 1. Setup output directories
     checkpoints_dir = os.path.join(out_dir, "checkpoints")
     logs_dir = os.path.join(out_dir, "logs")
     tb_dir = os.path.join(out_dir, "tensorboard")
@@ -32,43 +32,40 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(tb_dir, exist_ok=True)
     
-    # 2. Setup Device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    print(f"Using device: {device} | Mode: {training_mode}")
     
-    # 3. Setup DataLoaders
     print(f"Loading data from {manifest}...")
     train_loader, val_loader, test_loader = get_dataloaders(
         manifest_path=manifest,
         batch_size=batch_size,
         num_workers=num_workers,
         image_size=image_size,
-        high_quality_only=True
+        high_quality_only=True,
+        training_mode=training_mode
     )
     print(f"Dataloaders initialized. Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
     
-    # 4. Setup Model, Optimizer, Loss
     print("Initializing model...")
     model = DINOv3Regressor(head_width=256, dropout_p=0.3)
     model.to(device)
     
-    # Optimize ONLY the regression head since backbone is frozen
     head_params = [p for p in model.regression_head.parameters() if p.requires_grad]
     optimizer = AdamW(head_params, lr=lr, weight_decay=1e-4)
-    # Note: verbose parameter for ReduceLROnPlateau has been deprecated since PyTorch 2.2
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
-    criterion = get_loss_function(loss_type=loss)
     
-    # Optional: MAE specifically for tracking
+    if training_mode == 'joint':
+        criterion = JointRankingRegressionLoss(margin=5.0, lambda_rank=0.5, delta=1.0)
+    else:
+        criterion = get_loss_function(loss_type=loss)
+        
     mae_criterion = torch.nn.L1Loss()
     
-    # 5. Logging setup
     writer = SummaryWriter(tb_dir)
     csv_log_path = os.path.join(logs_dir, "training_log.csv")
     log_columns = ['epoch', 'train_loss', 'train_mae', 'val_loss', 'val_mae', 'lr', 'time_sec']
     log_data = []
     
-    # 6. Training Loop
     best_val_mae = float('inf')
     patience_counter = 0
     
@@ -81,33 +78,60 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         train_loss_sum = 0.0
         train_mae_sum = 0.0
         
-        for batch_idx, (images, targets, _) in enumerate(train_loader):
-            images, targets = images.to(device), targets.to(device)
-            
+        for batch in train_loader:
             optimizer.zero_grad()
-            predictions = model(images)
-            loss_val = criterion(predictions, targets)
             
-            loss_val.backward()
-            optimizer.step()
+            if training_mode == 'joint':
+                img_A, img_B, tgt_A, tgt_B, _, _ = batch
+                img_A, img_B = img_A.to(device), img_B.to(device)
+                tgt_A, tgt_B = tgt_A.to(device), tgt_B.to(device)
+                
+                pred_A = model(img_A)
+                pred_B = model(img_B)
+                loss_val = criterion(pred_A, pred_B, tgt_A, tgt_B)
+                
+                loss_val.backward()
+                optimizer.step()
+                
+                batch_size_real = tgt_A.size(0) * 2
+                train_loss_sum += loss_val.item() * batch_size_real
+                
+                with torch.no_grad():
+                    mae_sum = mae_criterion(pred_A, tgt_A).item() * tgt_A.size(0) + mae_criterion(pred_B, tgt_B).item() * tgt_B.size(0)
+                    train_mae_sum += mae_sum
+                    
+            else:
+                images, targets, _ = batch
+                images, targets = images.to(device), targets.to(device)
+                
+                predictions = model(images)
+                loss_val = criterion(predictions, targets)
+                
+                loss_val.backward()
+                optimizer.step()
+                
+                batch_size_real = targets.size(0)
+                train_loss_sum += loss_val.item() * batch_size_real
+                train_mae_sum += mae_criterion(predictions, targets).item() * batch_size_real
             
-            train_loss_sum += loss_val.item() * targets.size(0)
-            train_mae_sum += mae_criterion(predictions, targets).item() * targets.size(0)
-            
-        train_loss_epoch = train_loss_sum / len(train_loader.dataset)
-        train_mae_epoch = train_mae_sum / len(train_loader.dataset)
+        train_loss_epoch = train_loss_sum / (len(train_loader.dataset) * (2 if training_mode == 'joint' else 1))
+        train_mae_epoch = train_mae_sum / (len(train_loader.dataset) * (2 if training_mode == 'joint' else 1))
         
         # --- VAL PHASE ---
         model.eval()
         val_loss_sum = 0.0
         val_mae_sum = 0.0
         
+        # Validation is always standard regression (MAE) since we want absolute performance
+        # We don't evaluate ranking loss on val unless specifically required.
+        val_criterion = get_loss_function(loss_type=loss)
+        
         with torch.no_grad():
             for images, targets, _ in val_loader:
                 images, targets = images.to(device), targets.to(device)
                 
                 predictions = model(images)
-                loss_val = criterion(predictions, targets)
+                loss_val = val_criterion(predictions, targets)
                 
                 val_loss_sum += loss_val.item() * targets.size(0)
                 val_mae_sum += mae_criterion(predictions, targets).item() * targets.size(0)
@@ -118,7 +142,6 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         epoch_time = time.time() - start_time
         current_lr = optimizer.param_groups[0]['lr']
         
-        # Logging
         print(f"Epoch {epoch:03d}/{epochs} | "
               f"Train Loss: {train_loss_epoch:.4f}, MAE: {train_mae_epoch:.4f} | "
               f"Val Loss: {val_loss_epoch:.4f}, MAE: {val_mae_epoch:.4f} | "
@@ -131,7 +154,6 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         writer.add_scalar('LR', current_lr, epoch)
         
         log_data.append([epoch, train_loss_epoch, train_mae_epoch, val_loss_epoch, val_mae_epoch, current_lr, epoch_time])
-        
         scheduler.step(val_mae_epoch)
         
         # --- EARLY STOPPING & CHECKPOINTING ---
@@ -139,7 +161,6 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
             best_val_mae = val_mae_epoch
             patience_counter = 0
             best_model_path = os.path.join(checkpoints_dir, "best_model.pth")
-            # Save only state dict
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -153,10 +174,8 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
                 print(f"Early stopping triggered after {epoch} epochs.")
                 break
                 
-    # Save CSV Log
     df_log = pd.DataFrame(log_data, columns=log_columns)
     df_log.to_csv(csv_log_path, index=False)
     print(f"Training log saved to {csv_log_path}")
     writer.close()
-    
     print("Training complete.")
