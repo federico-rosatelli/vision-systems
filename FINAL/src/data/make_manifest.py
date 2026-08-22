@@ -99,9 +99,9 @@ def build_manifest(raw_data_dir, output_manifest_path):
         
         # 5. Verify physical existence of images
         print("Scanning for physical .jpg files...")
-        image_paths = {p.name: str(p.absolute()) for p in raw_dir.rglob("*.jpg")}
-        master_df['absolute_path'] = master_df['filename'].map(image_paths)
-        master_df['file_exists'] = master_df['absolute_path'].notna()
+        image_paths = {p.name: str(p) for p in raw_dir.rglob("*.jpg")}
+        master_df['image_path'] = master_df['filename'].map(image_paths)
+        master_df['file_exists'] = master_df['image_path'].notna()
         
     # 6. Plot Grouping Handling (Leakage Prevention)
     group_col = next((c for c in master_df.columns if c.lower() in ['qr-code', 'qr_code', 'plot_id', 'plotnr']), None)

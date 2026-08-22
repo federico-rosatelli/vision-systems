@@ -45,7 +45,10 @@ class CSFBDataset(Dataset):
         row = self.df.iloc[idx]
         
         # Determine image path
-        if 'absolute_path' in row and pd.notna(row['absolute_path']):
+        if 'image_path' in row and pd.notna(row['image_path']):
+            img_path = row['image_path']
+        elif 'absolute_path' in row and pd.notna(row['absolute_path']):
+            # Fallback for old manifests
             img_path = row['absolute_path']
         else:
             img_path = row['path'] if 'path' in row else row['filename']

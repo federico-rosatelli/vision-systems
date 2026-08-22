@@ -17,8 +17,8 @@ def parse_args():
                         help="Action to perform: prepare_data, train, evaluate, rank, predict, plot_logs, test, or all")
     
     # Data preparation arguments
-    parser.add_argument("--raw_dir", type=str, default="/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage", 
-                        help="Absolute path to the raw data directory")
+    parser.add_argument("--raw_dir", type=str, default="../dataset/Pictures_CFSB_leaf_damage", 
+                        help="Path to the raw data directory")
     parser.add_argument("--manifest", type=str, default="outputs/tables/data_manifest.csv", 
                         help="Path to save/load the manifest in CSV format")
     parser.add_argument("--out_manifest", type=str, default="outputs/tables/data_manifest_split.csv", 
