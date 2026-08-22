@@ -24,7 +24,7 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10, out_dir="outputs", seed=42, num_workers=4, image_size=224, training_mode="regression"):
+def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10, out_dir="outputs", seed=42, num_workers=4, image_size=224, training_mode="regression", high_quality_only=True, joint_margin=5.0):
     set_seed(seed)
     
     checkpoints_dir = os.path.join(out_dir, "checkpoints")
@@ -43,8 +43,9 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         batch_size=batch_size,
         num_workers=num_workers,
         image_size=image_size,
-        high_quality_only=True,
-        training_mode=training_mode
+        high_quality_only=high_quality_only,
+        training_mode=training_mode,
+        joint_margin=joint_margin
     )
     print(f"Dataloaders initialized. Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
     
@@ -57,7 +58,7 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
     
     if training_mode == 'joint':
-        criterion = JointRankingRegressionLoss(margin=5.0, lambda_rank=0.5, delta=1.0)
+        criterion = JointRankingRegressionLoss(margin=joint_margin, lambda_rank=0.5, delta=1.0)
     else:
         criterion = get_loss_function(loss_type=loss)
         

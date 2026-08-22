@@ -101,7 +101,7 @@ class CSFBPairedDataset(Dataset):
         img_B, target_B, group_B = self.base_dataset[idx_B]
         return img_A, img_B, target_A, target_B, group_A, group_B
 
-def get_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=518, high_quality_only=True, training_mode='regression'):
+def get_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=518, high_quality_only=True, training_mode='regression', joint_margin=5.0):
     """
     Creates and returns train, validation, and test dataloaders.
     """
@@ -125,7 +125,7 @@ def get_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=518,
     
     if training_mode == 'joint':
         train_dataset = CSFBPairedDataset(
-            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only, margin=5.0
+            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only, margin=joint_margin
         )
     else:
         train_dataset = CSFBDataset(

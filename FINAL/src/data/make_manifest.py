@@ -30,12 +30,12 @@ def parse_score_csv(csv_path):
         print(f"Error parsing {csv_path}: {e}")
         return pd.DataFrame()
 
-def build_manifest(raw_data_dir, output_manifest_path):
+def build_manifest(raw_dir_str, output_manifest_path, disagreement_threshold=10.0):
     """
-    Scans the raw_data_dir, parses the CSVs and builds a unified manifest.
+    Scans the raw_dir, parses the CSVs and builds a unified manifest.
     (Implementation of Phase 0 from PROJECT_PLAN.md)
     """
-    raw_dir = Path(raw_data_dir)
+    raw_dir = Path(raw_dir_str)
     
     # 1. Find all CSV files
     csv_files = list(raw_dir.rglob("*.csv"))
@@ -72,8 +72,8 @@ def build_manifest(raw_data_dir, output_manifest_path):
         master_df['disagreement'] = (master_df['Score_JLU'] - master_df['Score_GAU']).abs()
         master_df['mean_score'] = (master_df['Score_JLU'] + master_df['Score_GAU']) / 2.0
         
-        # High quality images: disagreement less than 5%
-        master_df['is_high_quality'] = master_df['disagreement'] < 5.0
+        # High quality images: disagreement less than threshold
+        master_df['is_high_quality'] = master_df['disagreement'] < disagreement_threshold
     else:
         print("Warning: Score columns for JLU and GAU not identified accurately. Current columns are:")
         print(master_df.columns.tolist())
@@ -122,6 +122,6 @@ def build_manifest(raw_data_dir, output_manifest_path):
     print(f"Total rows found in CSVs: {len(master_df)}")
     if 'file_exists' in master_df.columns:
         print(f"Images actually found on disk: {master_df['file_exists'].sum()}")
-    print(f"High Quality images (diff < 5): {master_df['is_high_quality'].sum()}")
+    print(f"High Quality images (diff < {disagreement_threshold}): {master_df['is_high_quality'].sum()}")
     print(f"Mean disagreement between raters: {master_df['disagreement'].mean():.2f}")
     

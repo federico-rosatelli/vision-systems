@@ -3,6 +3,10 @@
     "manifest": "outputs/tables/data_manifest.csv",
     "out_manifest": "outputs/tables/data_manifest_split.csv",
     
+    "disagreement_threshold": 10.0,
+    "test_size": 0.15,
+    "val_size": 0.15,
+    
     "epochs": 50,
     "batch_size": 32,
     "lr": 0.001,
@@ -13,6 +17,8 @@
     "num_workers": 4,
     "image_size": 224,
     "training_mode": "regression",
+    "high_quality_only": true,
+    "joint_margin": 5.0,
     
     "model_path": "outputs/checkpoints/best_model.pth",
     "preds_file": "outputs/tables/test_predictions.csv",

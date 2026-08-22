@@ -4,10 +4,10 @@ import argparse
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 
-def create_splits(manifest_path, output_path, random_state=42):
+def create_splits(manifest_path, output_path, random_state=42, test_size=0.15, val_size=0.15):
     """
     Reads the data manifest and creates group-aware, score-stratified 
-    train/validation/test splits (70/15/15).
+    train/validation/test splits.
     Ensures images from the same plot_group stay in the same split.
     """
     print(f"Loading manifest from {manifest_path}...")
@@ -41,28 +41,30 @@ def create_splits(manifest_path, output_path, random_state=42):
     unique_groups = group_stats['plot_group'].values
     group_bins = group_stats['score_bin'].values
     
-    # 3. First split: 70% Train, 30% Temp (Val + Test)
-    # If some strata have too few samples, train_test_split might complain. 
-    # We will wrap it in a try-except to fallback to non-stratified if needed.
+    # First split: Train vs Temp (Val + Test)
+    temp_size = test_size + val_size
+    # Handle the second split properly based on proportion
+    val_ratio_in_temp = val_size / temp_size if temp_size > 0 else 0.5
+    
     try:
         train_groups, temp_groups, _, temp_bins = train_test_split(
-            unique_groups, group_bins, test_size=0.30, 
+            unique_groups, group_bins, test_size=temp_size, 
             random_state=random_state, stratify=group_bins
         )
         
-        # Second split: 15% Val, 15% Test (Split the 30% temp in half)
+        # Second split: Val vs Test
         val_groups, test_groups = train_test_split(
-            temp_groups, test_size=0.50, 
+            temp_groups, test_size=(1.0 - val_ratio_in_temp), 
             random_state=random_state, stratify=temp_bins
         )
         print("Successfully performed stratified group splitting.")
     except ValueError as e:
         print(f"Warning: Stratification failed ({e}). Falling back to random group split.")
         train_groups, temp_groups = train_test_split(
-            unique_groups, test_size=0.30, random_state=random_state
+            unique_groups, test_size=temp_size, random_state=random_state
         )
         val_groups, test_groups = train_test_split(
-            temp_groups, test_size=0.50, random_state=random_state
+            temp_groups, test_size=(1.0 - val_ratio_in_temp), random_state=random_state
         )
         
     # 4. Map the assigned splits back to the original dataframe

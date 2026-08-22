@@ -23,6 +23,9 @@ def parse_args():
                         help="Path to save/load the manifest in CSV format")
     parser.add_argument("--out_manifest", type=str, default="outputs/tables/data_manifest_split.csv", 
                         help="Path to save/load the output manifest with split column")
+    parser.add_argument("--disagreement_threshold", type=float, default=10.0, help="Max percentage diff between raters")
+    parser.add_argument("--test_size", type=float, default=0.15, help="Test set size fraction")
+    parser.add_argument("--val_size", type=float, default=0.15, help="Validation set size fraction")
     
     # Training arguments
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
@@ -36,6 +39,8 @@ def parse_args():
     parser.add_argument("--image_size", type=int, default=224, help="Input image resolution")
     parser.add_argument("--training_mode", type=str, default="regression", choices=["regression", "joint"], 
                         help="Mode of training: regression or joint (ranking)")
+    parser.add_argument("--high_quality_only", type=lambda x: (str(x).lower() == 'true'), default=True, help="Filter for high quality images during training")
+    parser.add_argument("--joint_margin", type=float, default=5.0, help="Margin for Joint Ranking loss")
     
     # Evaluation arguments
     parser.add_argument("--model_path", type=str, default="outputs/checkpoints/best_model.pth", 
@@ -76,9 +81,9 @@ def main():
     if args.action in ["prepare_data", "all"]:
         print("=== Step 1: Data Preparation ===")
         print("Building Manifest...")
-        build_manifest(args.raw_dir, args.manifest)
+        build_manifest(args.raw_dir, args.manifest, args.disagreement_threshold)
         print("Creating Splits...")
-        create_splits(args.manifest, args.out_manifest, args.seed)
+        create_splits(args.manifest, args.out_manifest, args.seed, args.test_size, args.val_size)
         
     if args.action in ["train", "all"]:
         print("=== Step 2: Training ===")
@@ -93,7 +98,9 @@ def main():
             seed=args.seed,
             num_workers=args.num_workers,
             image_size=args.image_size,
-            training_mode=args.training_mode
+            training_mode=args.training_mode,
+            high_quality_only=args.high_quality_only,
+            joint_margin=args.joint_margin
         )
         
     if args.action in ["evaluate", "all"]:
