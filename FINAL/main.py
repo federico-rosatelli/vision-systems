@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 import sys
 from src.data.make_manifest import build_manifest
 from src.data.make_splits import create_splits
@@ -50,11 +51,27 @@ def parse_args():
     # Plotting arguments
     parser.add_argument("--log_file", type=str, default="outputs/logs/training_log.csv",
                         help="Path to the training log CSV for plotting")
+                        
+    # Configuration file
+    parser.add_argument("--config", type=str, help="Path to a JSON configuration file to override arguments")
     
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    
+    # Load config file if provided
+    if args.config:
+        if os.path.exists(args.config):
+            with open(args.config, 'r') as f:
+                config_data = json.load(f)
+            # Update args with values from config file
+            for key, value in config_data.items():
+                if hasattr(args, key):
+                    setattr(args, key, value)
+            print(f"Loaded configuration from {args.config}")
+        else:
+            print(f"Warning: Configuration file {args.config} not found.")
     
     if args.action in ["prepare_data", "all"]:
         print("=== Step 1: Data Preparation ===")

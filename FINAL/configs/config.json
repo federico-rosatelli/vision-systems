@@ -1,0 +1,22 @@
+{
+    "raw_dir": "../dataset/Pictures_CFSB_leaf_damage",
+    "manifest": "outputs/tables/data_manifest.csv",
+    "out_manifest": "outputs/tables/data_manifest_split.csv",
+    
+    "epochs": 50,
+    "batch_size": 32,
+    "lr": 0.001,
+    "loss": "huber",
+    "patience": 10,
+    "out_dir": "outputs",
+    "seed": 42,
+    "num_workers": 4,
+    "image_size": 224,
+    "training_mode": "regression",
+    
+    "model_path": "outputs/checkpoints/best_model.pth",
+    "preds_file": "outputs/tables/test_predictions.csv",
+    "out_rank": "outputs/tables/resistance_leaderboard.csv",
+    
+    "log_file": "outputs/logs/training_log.csv"
+}
