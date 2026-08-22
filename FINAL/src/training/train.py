@@ -7,6 +7,7 @@ import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -79,7 +80,7 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         train_loss_sum = 0.0
         train_mae_sum = 0.0
         
-        for batch in train_loader:
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch:03d}/{epochs} [Train]"):
             optimizer.zero_grad()
             
             if training_mode == 'joint':
@@ -128,7 +129,7 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
         val_criterion = get_loss_function(loss_type=loss)
         
         with torch.no_grad():
-            for images, targets, _ in val_loader:
+            for images, targets, _ in tqdm(val_loader, desc=f"Epoch {epoch:03d}/{epochs} [Val]"):
                 images, targets = images.to(device), targets.to(device)
                 
                 predictions = model(images)
