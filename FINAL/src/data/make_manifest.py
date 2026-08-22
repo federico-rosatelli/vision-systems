@@ -104,11 +104,11 @@ def build_manifest(raw_data_dir, output_manifest_path):
         master_df['file_exists'] = master_df['absolute_path'].notna()
         
     # 6. Plot Grouping Handling (Leakage Prevention)
-    if 'plot_id' not in master_df.columns and 'qr_code' not in master_df.columns:
+    group_col = next((c for c in master_df.columns if c.lower() in ['qr-code', 'qr_code', 'plot_id', 'plotnr']), None)
+    if not group_col:
         master_df['plot_group'] = 'requires_qr_extraction'
     else:
-        group_col = 'plot_id' if 'plot_id' in master_df.columns else 'qr_code'
-        master_df['plot_group'] = master_df[group_col]
+        master_df['plot_group'] = master_df[group_col].fillna('unknown').astype(str)
 
     # Save the manifest
     output_path = Path(output_manifest_path)
