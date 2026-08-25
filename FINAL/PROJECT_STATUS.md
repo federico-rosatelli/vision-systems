@@ -32,14 +32,14 @@
 - **Automation & Testing**
   - [x] Unit tests and end-to-end tests implemented and passed.
 
+- **Official Training Execution**
+  - [x] Run standard training (Absolute Regression) on the real dataset.
+  - [x] Run advanced training (Pairwise Ranking) on the real dataset.
+  - [x] Compare test metrics between the two models to select the best one.
+
 ---
 
 ## Pending Phases (Execution & Research)
-
-- **Official Training Execution**
-  - [ ] Run standard training (Absolute Regression) on the real dataset.
-  - [ ] Run advanced training (Pairwise Ranking) on the real dataset.
-  - [ ] Compare test metrics between the two models to select the best one.
 
 - **Biological Results Extraction**
   - [ ] Run ranking analysis on real data to produce the final leaderboard of resistant genotypes to hand over to the team.
