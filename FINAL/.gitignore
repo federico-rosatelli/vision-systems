@@ -27,7 +27,6 @@ venv/
 .ipynb_checkpoints
 
 # Project specific
-outputs/*
 !outputs/figures/
 !outputs/tables/
 .vscode/
