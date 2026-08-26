@@ -42,7 +42,7 @@
 ## Pending Phases (Execution & Research)
 
 - **Biological Results Extraction**
-  - [ ] Run ranking analysis on real data to produce the final leaderboard of resistant genotypes to hand over to the team.
+  - [x] Run ranking analysis on real data to produce the final leaderboard of resistant genotypes to hand over to the team.
 
 ---
 
@@ -60,24 +60,23 @@
 The entire pipeline is managed via the `main.py` file:
 
 ```bash
+# The pipeline is now fully configurable via configs/config.json
+
 # Prepare CSVs and images
-python main.py prepare_data --raw_dir /path/to/data
+python main.py prepare_data --config configs/config.json
 
-# Start standard training
-python main.py train --training_mode regression
-
-# Start advanced training (pairs)
-python main.py train --training_mode joint
+# Start advanced training (pairs/joint) or standard regression
+python main.py train --config configs/config.json
 
 # Evaluate performance on the test set
-python main.py evaluate --model_path outputs/checkpoints/best_model.pth
+python main.py evaluate --config configs/config.json
 
 # Plot the training history logs (Loss, MAE, LR)
-python main.py plot_logs --log_file outputs/logs/training_log.csv --out_dir outputs/plots
+python main.py plot_logs --config configs/config.json
 
 # Get the genotype resistance leaderboard
-python main.py rank --preds_file outputs/tables/test_predictions.csv
+python main.py rank --config configs/config.json
 
 # Analyze a single leaf
-python main.py predict --image my_leaf.jpg
+python main.py predict --image my_leaf.jpg --config configs/config.json
 ```
