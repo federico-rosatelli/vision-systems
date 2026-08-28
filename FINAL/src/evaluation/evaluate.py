@@ -12,10 +12,23 @@ from src.data.dataset import get_dataloaders
 from src.models.dinov3_regressor import DINOv3Regressor
 from src.visualization.plots import plot_pred_vs_true, plot_residuals
 
-def evaluate_model(manifest, model_path, batch_size=32, out_dir="outputs", num_workers=4, image_size=224):
+def evaluate_model(manifest, model_path, batch_size=32, out_dir=None, num_workers=4, image_size=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Evaluating on device: {device}")
     
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+    checkpoint = torch.load(model_path, map_location=device)
+    model_config = checkpoint.get('model_config')
+    if not model_config:
+        raise ValueError("Checkpoint lacks required model_config metadata; retrain it as a reproducible run")
+    checkpoint_image_size = model_config['image_size']
+    if image_size is not None and image_size != checkpoint_image_size:
+        raise ValueError("Requested image size does not match the checkpoint metadata")
+    image_size = checkpoint_image_size
+    if out_dir is None:
+        out_dir = str(os.path.dirname(os.path.dirname(model_path)))
+
     # 1. Load Test Dataloader
     print(f"Loading test split from {manifest}...")
     _, _, test_loader = get_dataloaders(
@@ -32,17 +45,11 @@ def evaluate_model(manifest, model_path, batch_size=32, out_dir="outputs", num_w
         
     # 2. Load Model
     print(f"Loading model from {model_path}...")
-    model = DINOv3Regressor(head_width=256, dropout_p=0.0) # Dropout 0 for eval, though eval() disables it anyway
-    
-    if not os.path.exists(model_path):
-        print(f"Error: Model file {model_path} not found.")
-        return
-        
-    checkpoint = torch.load(model_path, map_location=device)
+    model = DINOv3Regressor(**model_config)
     if 'model_state_dict' in checkpoint:
         model.load_state_dict(checkpoint['model_state_dict'])
     else:
-        model.load_state_dict(checkpoint) # Support loading raw state dicts too
+        raise ValueError("Checkpoint lacks model_state_dict")
         
     model.to(device)
     model.eval()

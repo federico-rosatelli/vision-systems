@@ -1,0 +1,74 @@
+{
+  "duplicate_filenames": [],
+  "image_counts": {
+    "test": 73,
+    "train": 331,
+    "val": 66
+  },
+  "image_ratios": {
+    "test": 0.15531914893617021,
+    "train": 0.7042553191489361,
+    "val": 0.14042553191489363
+  },
+  "plot_group_counts": {
+    "test": 36,
+    "train": 175,
+    "val": 39
+  },
+  "plot_group_leakage": [],
+  "score_bin_group_counts": {
+    "0-5": {
+      "test": 16,
+      "train": 76,
+      "val": 17
+    },
+    "10-20": {
+      "test": 9,
+      "train": 44,
+      "val": 10
+    },
+    "20-40": {
+      "test": 1,
+      "train": 5,
+      "val": 1
+    },
+    "40-100": {
+      "train": 1
+    },
+    "5-10": {
+      "test": 10,
+      "train": 49,
+      "val": 11
+    }
+  },
+  "score_summary": {
+    "test": {
+      "count": 73,
+      "max": 27.75,
+      "mean": 6.8417808219178085,
+      "min": 0.0
+    },
+    "train": {
+      "count": 331,
+      "max": 44.0,
+      "mean": 7.381570996978852,
+      "min": 0.0
+    },
+    "val": {
+      "count": 66,
+      "max": 28.5,
+      "mean": 8.260606060606062,
+      "min": 0.75
+    }
+  },
+  "seed": 42,
+  "status": "pass",
+  "target_ratios": {
+    "test": 0.15,
+    "train": 0.7,
+    "val": 0.15
+  },
+  "total_images": 470,
+  "total_plot_groups": 250,
+  "unassigned_images": []
+}

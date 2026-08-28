@@ -1,9 +1,12 @@
 {
-    "raw_dir": "../dataset/Pictures_CFSB_leaf_damage",
-    "manifest": "outputs/tables/data_manifest.csv",
-    "out_manifest": "outputs/tables/data_manifest_split.csv",
+    "raw_dir": "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage",
+    "manifest": "outputs/tables/baseline_manifest.csv",
+    "audit": "outputs/tables/baseline_audit.json",
+    "out_manifest": "outputs/tables/baseline_manifest_split.csv",
+    "split_audit": "outputs/tables/baseline_split_audit.json",
+    "split_groups": "outputs/tables/baseline_split_groups.json",
     
-    "disagreement_threshold": 10.0,
+    "disagreement_threshold": 5.0,
     "test_size": 0.15,
     "val_size": 0.15,
     
@@ -12,17 +15,22 @@
     "lr": 0.001,
     "loss": "huber",
     "patience": 10,
-    "out_dir": "outputs",
+    "out_dir": "outputs/runs",
+    "run_name": "baseline_regression_seed42",
     "seed": 42,
     "num_workers": 4,
     "image_size": 224,
+    "model_name": "dinov3_vits16",
+    "weights_path": null,
+    "head_width": 256,
+    "dropout_p": 0.3,
     "training_mode": "regression",
-    "high_quality_only": true,
+    "high_quality_only": false,
     "joint_margin": 5.0,
     
-    "model_path": "outputs/checkpoints/best_model.pth",
-    "preds_file": "outputs/tables/test_predictions.csv",
+    "model_path": "outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth",
+    "preds_file": "outputs/runs/baseline_regression_seed42/tables/test_predictions.csv",
     "out_rank": "outputs/tables/resistance_leaderboard.csv",
     
-    "log_file": "outputs/logs/training_log.csv"
+    "log_file": "outputs/runs/baseline_regression_seed42/logs/training_log.csv"
 }

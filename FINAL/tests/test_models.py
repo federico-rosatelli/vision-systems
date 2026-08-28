@@ -4,8 +4,8 @@ from src.models.dinov3_regressor import DINOv3Regressor, get_loss_function
 
 class TestModels(unittest.TestCase):
     def setUp(self):
-        # Initialize model with placeholder dinov2_vits14 for testing without internet dependency issues
-        self.model = DINOv3Regressor(model_name='dinov2_vits14', head_width=64, dropout_p=0.1)
+        # Official runs require an explicit DINOv3 backbone.
+        self.model = DINOv3Regressor(model_name='dinov3_vits16', head_width=64, dropout_p=0.1)
         
     def test_frozen_backbone(self):
         """Ensure backbone requires no gradients and head requires gradients."""

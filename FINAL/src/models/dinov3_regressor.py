@@ -6,7 +6,8 @@ class DINOv3Regressor(nn.Module):
     DINOv3 Baseline model with frozen backbone and trainable MLP regression head.
     Implements Phase 2 of the project plan.
     """
-    def __init__(self, model_name='dinov3_vits14', head_width=256, dropout_p=0.3):
+    def __init__(self, model_name, head_width=256, dropout_p=0.3, image_size=224,
+                 output_range=(0.0, 100.0), weights_path=None):
         """
         Args:
             model_name (str): The name of the DINO checkpoint to load.
@@ -15,16 +16,29 @@ class DINOv3Regressor(nn.Module):
         """
         super().__init__()
         
-        # We attempt to load the DINO backbone. 
-        # Note: If DINOv3 is not officially on PyTorch Hub under 'facebookresearch/dinov3', 
-        # the repository path will need to be adjusted. 
-        # A fallback to dinov2 is provided for immediate testing.
+        if not model_name.startswith("dinov3_"):
+            raise ValueError("Official runs require an explicit DINOv3 model name")
+        self.model_name = model_name
+        self.image_size = image_size
+        if list(output_range) != [0.0, 100.0]:
+            raise ValueError("Only the fixed damage output range [0, 100] is supported")
+        print(f"Loading explicit backbone {model_name} from facebookresearch/dinov3...")
         try:
-            print(f"Attempting to load {model_name} from torch hub...")
-            self.backbone = torch.hub.load('facebookresearch/dinov3', model_name, pretrained=True)
-        except Exception as e:
-            print(f"Could not load dinov3 ({e}). Falling back to dinov2_vits14 as placeholder...")
-            self.backbone = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14', pretrained=True)
+            load_kwargs = {"pretrained": True}
+            if weights_path:
+                from pathlib import Path
+                weights_path = Path(weights_path).expanduser().resolve()
+                if not weights_path.is_file():
+                    raise FileNotFoundError(f"DINOv3 weights not found: {weights_path}")
+                load_kwargs["weights"] = str(weights_path)
+            self.backbone = torch.hub.load(
+                "facebookresearch/dinov3", model_name, **load_kwargs
+            )
+        except Exception as error:
+            raise RuntimeError(
+                f"Failed to load required DINOv3 backbone {model_name!r}; "
+                "official runs do not silently fall back to another model"
+            ) from error
             
         # Freeze the backbone completely (Phase 2 requirement)
         for param in self.backbone.parameters():
@@ -33,7 +47,7 @@ class DINOv3Regressor(nn.Module):
         self.backbone.eval() # Ensure dropout/batchnorm in backbone are disabled
             
         # Determine embedding dimension dynamically (e.g., 384 for ViT-S)
-        dummy_input = torch.randn(1, 3, 224, 224)
+        dummy_input = torch.randn(1, 3, image_size, image_size)
         with torch.no_grad():
             dummy_output = self.backbone(dummy_input)
             embed_dim = dummy_output.shape[1]

@@ -16,6 +16,7 @@ from src.data.dataset import get_dataloaders
 from src.models.dinov3_regressor import DINOv3Regressor, get_loss_function
 from src.models.losses import JointRankingRegressionLoss
 from src.visualization.plots import plot_training_history
+from src.training.provenance import build_run_metadata, save_json
 
 def set_seed(seed):
     random.seed(seed)
@@ -24,18 +25,46 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10, out_dir="outputs", seed=42, num_workers=4, image_size=224, training_mode="regression", high_quality_only=True, joint_margin=5.0):
+def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patience=10,
+                out_dir="outputs/runs", run_name="baseline_seed42", seed=42, num_workers=4,
+                image_size=224, training_mode="regression", high_quality_only=False,
+                joint_margin=5.0, model_name="dinov3_vits16", head_width=256,
+                dropout_p=0.3, weights_path=None):
     set_seed(seed)
-    
-    checkpoints_dir = os.path.join(out_dir, "checkpoints")
-    logs_dir = os.path.join(out_dir, "logs")
-    tb_dir = os.path.join(out_dir, "tensorboard")
+
+    run_dir = os.path.join(out_dir, run_name)
+    checkpoints_dir = os.path.join(run_dir, "checkpoints")
+    logs_dir = os.path.join(run_dir, "logs")
+    tb_dir = os.path.join(run_dir, "tensorboard")
     os.makedirs(checkpoints_dir, exist_ok=True)
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(tb_dir, exist_ok=True)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device} | Mode: {training_mode}")
+    print(f"Using device: {device} | Mode: {training_mode} | Run: {run_name}")
+
+    model_config = {
+        "model_name": model_name,
+        "head_width": head_width,
+        "dropout_p": dropout_p,
+        "image_size": image_size,
+        "output_range": [0.0, 100.0],
+        "weights_path": weights_path,
+    }
+    training_config = {
+        "epochs": epochs, "batch_size": batch_size, "learning_rate": lr,
+        "loss": loss, "patience": patience, "seed": seed,
+        "num_workers": num_workers, "training_mode": training_mode,
+        "high_quality_only": high_quality_only, "joint_margin": joint_margin,
+    }
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    run_metadata = build_run_metadata(
+        project_dir, manifest, run_name, model_config, training_config
+    )
+    if weights_path:
+        from src.training.provenance import sha256_file
+        run_metadata["weights_sha256"] = sha256_file(weights_path)
+    save_json(run_metadata, os.path.join(run_dir, "run_config.json"))
     
     print(f"Loading data from {manifest}...")
     train_loader, val_loader, test_loader = get_dataloaders(
@@ -50,7 +79,7 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     print(f"Dataloaders initialized. Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
     
     print("Initializing model...")
-    model = DINOv3Regressor(head_width=256, dropout_p=0.3)
+    model = DINOv3Regressor(**model_config)
     model.to(device)
     
     head_params = [p for p in model.regression_head.parameters() if p.requires_grad]
@@ -165,10 +194,14 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
             patience_counter = 0
             best_model_path = os.path.join(checkpoints_dir, "best_model.pth")
             torch.save({
+                'checkpoint_schema_version': 1,
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'best_val_mae': best_val_mae
+                'best_val_mae': best_val_mae,
+                'run_metadata': run_metadata,
+                'model_config': model_config,
+                'training_config': training_config,
             }, best_model_path)
             print(f"   -> New best validation MAE: {best_val_mae:.4f}! Model saved.")
         else:
@@ -183,7 +216,7 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     writer.close()
     
     # Generate training plots automatically
-    plots_dir = os.path.join(out_dir, "plots")
+    plots_dir = os.path.join(run_dir, "plots")
     plot_training_history(csv_log_path, plots_dir)
     
     print("Training complete.")

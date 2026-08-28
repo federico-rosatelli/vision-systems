@@ -1,0 +1,16 @@
+{
+  "mean_predictor": {
+    "mae": 4.449673053842652,
+    "prediction": 7.381570996978852,
+    "rmse": 5.630756207406354
+  },
+  "median_predictor": {
+    "mae": 4.014383561643836,
+    "prediction": 5.0,
+    "rmse": 5.899677841216161
+  },
+  "test_samples": 73,
+  "train_samples": 331,
+  "train_target_mean": 7.381570996978852,
+  "train_target_median": 5.0
+}

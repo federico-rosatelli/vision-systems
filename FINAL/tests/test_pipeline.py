@@ -92,8 +92,7 @@ def test_full_pipeline():
     
     # 5. Model Forward Pass
     print("\n--- Testing Model Forward Pass ---")
-    # We use dinov2_vits14 as placeholder because DINOv3 is not publicly loaded under that exact name in torch hub yet
-    model = DINOv3Regressor(model_name='dinov2_vits14', head_width=32)
+    model = DINOv3Regressor(model_name='dinov3_vits16', head_width=32)
     model.eval() # Ensure eval mode
     
     # Since backbone is frozen, gradients should only be required for the regression_head
@@ -110,4 +109,3 @@ def test_full_pipeline():
     print("Model forward pass successful. Shape and bounds are correct.")
     
     print("\n✅ ALL TESTS PASSED PERFECTLY!")
-
