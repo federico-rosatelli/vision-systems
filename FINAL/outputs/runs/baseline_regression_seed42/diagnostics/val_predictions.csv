@@ -1,0 +1,67 @@
+filename,image_path,plot_group,true_score,pred_score,absolute_error
+20251021_120926.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_120926.jpg,12_R4S_470_A4C34_2_1,21.25,9.267449,11.982551
+20251021_120933.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_120933.jpg,12_R4S_470_A4C34_2_1,20.75,9.669266,11.080734
+20251021_120939.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_120939.jpg,12_R4S_470_A4C34_2_1,20.25,10.266772,9.983228
+20251021_121011.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121011.jpg,13_R4S_212_Askari_3_1,15.0,10.319891,4.680109
+20251021_121034.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121034.jpg,13_R4S_212_Askari_3_1,17.5,9.683945,7.8160553
+20251021_121047.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121047.jpg,24_R4S_291_Wolynski_4_1,20.25,7.7047853,12.545215
+20251021_121100.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121100.jpg,24_R4S_291_Wolynski_4_1,19.5,9.945371,9.554629
+20251021_121253.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121253.jpg,48_R4S_406_S30_8_1,8.5,5.3291726,3.1708274
+20251021_121432.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121432.jpg,61_R4S_442_INL 2_11_1,17.0,6.98261,10.017389
+20251021_121827.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_121827.jpg,109_R4S_187_AMBER X COMMANCHE DH LINE_19_1,1.75,8.37869,6.62869
+20251021_122227.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_122227.jpg,156_R4S_344_Conqueror Bronye Green Top_26_1,4.0,7.193331,3.1933308
+20251021_122242.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_122242.jpg,156_R4S_344_Conqueror Bronye Green Top_26_1,28.5,6.419857,22.080143
+20251021_122423.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_122423.jpg,169_R4S_149_Rapid_29_1,1.75,7.08806,5.33806
+20251021_122655.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_122655.jpg,204_R4S_327_Zork_34_1,7.5,7.314495,0.18550491
+20251021_122701.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_122701.jpg,204_R4S_327_Zork_34_1,3.5,9.094269,5.594269
+20251021_123237.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_123237.jpg,265_R4S_189_CAPRICORN DH1_45_1,15.25,6.378539,8.871461
+20251021_123657.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_123657.jpg,311_Smaragd_52_2,4.25,7.1426773,2.8926773
+20251021_123702.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_123702.jpg,311_Smaragd_52_2,4.75,6.107852,1.357852
+20251021_123710.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_123710.jpg,311_Smaragd_52_2,2.25,7.0619082,4.8119082
+20251021_124932.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_124932.jpg,155_R4S_190_RAFAL DH1_26_2,20.0,7.194926,12.805075
+20251021_124940.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_124940.jpg,155_R4S_190_RAFAL DH1_26_2,9.75,7.4315467,2.3184533
+20251021_124947.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_124947.jpg,155_R4S_190_RAFAL DH1_26_2,20.75,6.8016663,13.948334
+20251021_125346.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_125346.jpg,107_R4S_451_S5_18_2,7.0,6.7803764,0.21962357
+20251021_125949.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_125949.jpg,38_R4S_292_V8_7_2,10.0,10.557181,0.55718136
+20251021_130029.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_130029.jpg,26_R4S_494_DSV1_5_2,4.5,13.689724,9.189724
+20251021_130115.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_130115.jpg,23_R4S_156_Vivol_4_2,8.5,6.308247,2.191753
+20251021_130642.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_130642.jpg,46_R4S_478_H357_8_3,8.25,8.276499,0.026498795
+20251021_130744.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_130744.jpg,58_R4S_207_Phil_10_3,1.25,7.5349016,6.2849016
+20251021_130752.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_130752.jpg,58_R4S_207_Phil_10_3,8.5,6.565968,1.934032
+20251021_131711.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_131711.jpg,166_R4S_495_DSV2_28_3,3.0,7.6578045,4.6578045
+20251021_131721.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_131721.jpg,166_R4S_495_DSV2_28_3,3.0,6.96202,3.96202
+20251021_131728.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_131728.jpg,166_R4S_495_DSV2_28_3,4.5,6.1204033,1.6204033
+20251021_151943.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_151943.jpg,69_R4S_504_Express 617_12_4,2.25,5.822922,3.5729222
+20251021_151952.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_151952.jpg,69_R4S_504_Express 617_12_4,4.25,4.6717143,0.4217143
+20251021_152119.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_152119.jpg,88_R4S_172_Aragon_15_4,7.25,6.1243777,1.1256223
+20251021_152348.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_152348.jpg,117_R4S_159_Lipton_20_4,9.5,5.424458,4.075542
+20251021_152415.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_152415.jpg,117_R4S_159_Lipton_20_4,5.0,9.462799,4.462799
+20251021_153622.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_153622.jpg,268_R4S_264_Allure_45_4,17.5,5.032176,12.467824
+20251021_154000.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_154000.jpg,309_Smaragd_52_4,9.75,5.744286,4.005714
+20251021_154700.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_154700.jpg,233_R4S_551_ALLESANDRO KWS_39_5,2.25,4.04921,1.7992101
+20251021_155359.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_155359.jpg,164_R4S_454_S3_28_5,9.0,7.2934484,1.7065516
+20251021_155407.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_155407.jpg,164_R4S_454_S3_28_5,0.75,6.1944103,5.4444103
+20251021_155923.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_155923.jpg,101_R4S_375_Vinnickij 15&59_17_5,4.5,4.8509216,0.35092163
+20251021_155930.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_155930.jpg,101_R4S_375_Vinnickij 15&59_17_5,4.75,5.7365155,0.9865155
+20251021_160133.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160133.jpg,68_R4S_493_KWS ARIANOS_12_5,4.0,6.256383,2.256383
+20251021_160221.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160221.jpg,65_R4S_490_R8_11_5,5.5,4.9481945,0.5518055
+20251021_160610.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160610.jpg,17_R4S_395_Dippes_3_5,9.0,8.346759,0.65324116
+20251021_160615.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160615.jpg,17_R4S_395_Dippes_3_5,2.0,6.3647738,4.3647738
+20251021_160621.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160621.jpg,17_R4S_395_Dippes_3_5,9.0,5.2445946,3.7554054
+20251021_160632.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160632.jpg,8_R4S_184_NK Nemax_2_5,1.75,4.2411427,2.4911427
+20251021_160640.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160640.jpg,8_R4S_184_NK Nemax_2_5,2.75,5.621066,2.871066
+20251021_160647.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160647.jpg,8_R4S_184_NK Nemax_2_5,6.25,6.0364637,0.21353626
+20251021_160754.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160754.jpg,7_R4S_318_SENSATION NY_2_6,2.5,6.4640613,3.9640613
+20251021_160802.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160802.jpg,7_R4S_318_SENSATION NY_2_6,1.25,3.9118516,2.6618516
+20251021_160809.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_160809.jpg,7_R4S_318_SENSATION NY_2_6,2.45,4.5251207,2.0751207
+20251021_161143.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_161143.jpg,66_R4S_336_Wilhelmsburger Reform_11_6,7.25,4.57332,2.67668
+20251021_161150.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_161150.jpg,66_R4S_336_Wilhelmsburger Reform_11_6,1.0,4.646455,3.6464548
+20251021_161334.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_161334.jpg,91_R4S_505_Express 617_16_6,1.0,7.064622,6.064622
+20251021_161342.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_161342.jpg,91_R4S_505_Express 617_16_6,1.5,3.830386,2.330386
+20251021_161705.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_161705.jpg,138_R4S_277_Krapphauser_23_6,17.0,3.4898548,13.510145
+20251021_162246.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162246.jpg,210_R4S_422_G89_35_6,14.5,4.1097946,10.390205
+20251021_162601.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162601.jpg,247_R4S_456_S17_42_6,3.0,4.7866073,1.7866073
+20251021_162630.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162630.jpg,258_R4S_516_R31_43_6,17.25,3.367022,13.882978
+20251021_162638.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162638.jpg,258_R4S_516_R31_43_6,2.0,4.159603,2.159603
+20251021_162646.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162646.jpg,258_R4S_516_R31_43_6,13.5,3.5292246,9.970776
+20251021_162946.jpg,/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set/20251021_162946.jpg,294_R4S_228_Orlando_49_6,1.5,5.652143,4.152143

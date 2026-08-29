@@ -1,0 +1,71 @@
+Loading explicit DINOv3 backbone from /home/user/dagkusue1/vision-systems/FINAL/weights/dinov3-vits16-hf...
+Loading weights:   0%|          | 0/211 [00:00<?, ?it/s]Loading weights: 100%|██████████| 211/211 [00:00<00:00, 10327.54it/s]
+Backbone frozen. Extracted embedding dimension: 384
+{
+  "checkpoint_epoch": 40,
+  "checkpoint_best_validation_mae": 5.126502441637443,
+  "splits": {
+    "train": {
+      "samples": 331,
+      "mae": 4.242344957464051,
+      "rmse": 6.4585039780054405,
+      "pearson_r": 0.3896005078562642,
+      "spearman_rho": 0.40601383128405155,
+      "targets": {
+        "mean": 7.381570998635537,
+        "std": 6.865168471233189,
+        "minimum": 0.0,
+        "maximum": 44.0
+      },
+      "predictions": {
+        "mean": 6.177084966008397,
+        "std": 2.036841081318193,
+        "minimum": 2.7669975757598877,
+        "maximum": 14.62214183807373
+      },
+      "constant_baselines": {
+        "train_mean": {
+          "prediction": 7.381570996978852,
+          "mae": 5.119150063170515,
+          "rmse": 6.85479028166944
+        },
+        "train_median": {
+          "prediction": 5.0,
+          "mae": 4.7299093656309426,
+          "rmse": 7.256723105314937
+        }
+      }
+    },
+    "val": {
+      "samples": 66,
+      "mae": 5.1265025933583575,
+      "rmse": 6.8185704697216085,
+      "pearson_r": 0.23910676573980585,
+      "spearman_rho": 0.27122468689998513,
+      "targets": {
+        "mean": 8.260606061328541,
+        "std": 6.8480851621270835,
+        "minimum": 0.75,
+        "maximum": 28.5
+      },
+      "predictions": {
+        "mean": 6.587983120571483,
+        "std": 2.0277508671702087,
+        "minimum": 3.3670220375061035,
+        "maximum": 13.68972396850586
+      },
+      "constant_baselines": {
+        "train_mean": {
+          "prediction": 7.381570996978852,
+          "mae": 5.452311635274956,
+          "rmse": 6.852621650198698
+        },
+        "train_median": {
+          "prediction": 5.0,
+          "mae": 5.413636362913883,
+          "rmse": 7.53772331168955
+        }
+      }
+    }
+  }
+}

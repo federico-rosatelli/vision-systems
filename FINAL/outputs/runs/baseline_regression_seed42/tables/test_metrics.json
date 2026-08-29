@@ -1,0 +1,63 @@
+{
+  "best_validation_mae": 5.126502441637443,
+  "checkpoint_epoch": 40,
+  "checkpoint_path": "/home/user/dagkusue1/vision-systems/FINAL/outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth",
+  "mae": 4.650162220001221,
+  "pairwise_ranking": {
+    "10.0": {
+      "accuracy": 0.45792563600782776,
+      "pair_count": 511
+    },
+    "20.0": {
+      "accuracy": 0.4305555555555556,
+      "pair_count": 72
+    },
+    "5.0": {
+      "accuracy": 0.4585115483319076,
+      "pair_count": 1169
+    }
+  },
+  "pearson_r": -0.09711890667676926,
+  "rmse": 6.259615406251385,
+  "run_metadata": {
+    "created_at_utc": "2026-08-29T11:19:47.359504+00:00",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "pandas": "3.0.5",
+      "scikit-learn": "1.9.0",
+      "torch": "2.13.0",
+      "torchvision": "0.28.0"
+    },
+    "git_commit": "d02a2f09f68bef7b680fd34272c6b91b13a53a4f",
+    "manifest_path": "/home/user/dagkusue1/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
+    "manifest_sha256": "7048425afdb49fcd0fdf94c3c703b012bde008652e9ea2dcb08c7e7b9d3f24a8",
+    "model": {
+      "dropout_p": 0.3,
+      "head_width": 256,
+      "image_size": 224,
+      "model_name": "dinov3_vits16",
+      "output_range": [
+        0.0,
+        100.0
+      ],
+      "weights_path": "weights/dinov3-vits16-hf"
+    },
+    "run_name": "baseline_regression_seed42",
+    "schema_version": 1,
+    "training": {
+      "batch_size": 32,
+      "epochs": 50,
+      "high_quality_only": false,
+      "joint_margin": 5.0,
+      "learning_rate": 0.001,
+      "loss": "huber",
+      "num_workers": 4,
+      "patience": 10,
+      "seed": 42,
+      "training_mode": "regression"
+    },
+    "weights_sha256": "4610ad75edef83e75afdebf162d148dc628045ea6cbb83d67d4708c709c4f91d"
+  },
+  "spearman_rho": -0.10782536549771074,
+  "test_samples": 73
+}

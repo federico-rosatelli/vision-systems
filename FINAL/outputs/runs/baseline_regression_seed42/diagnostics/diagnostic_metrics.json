@@ -1,0 +1,68 @@
+{
+  "checkpoint_best_validation_mae": 5.126502441637443,
+  "checkpoint_epoch": 40,
+  "splits": {
+    "train": {
+      "constant_baselines": {
+        "train_mean": {
+          "mae": 5.119150063170515,
+          "prediction": 7.381570996978852,
+          "rmse": 6.85479028166944
+        },
+        "train_median": {
+          "mae": 4.7299093656309426,
+          "prediction": 5.0,
+          "rmse": 7.256723105314937
+        }
+      },
+      "mae": 4.242344957464051,
+      "pearson_r": 0.3896005078562642,
+      "predictions": {
+        "maximum": 14.62214183807373,
+        "mean": 6.177084966008397,
+        "minimum": 2.7669975757598877,
+        "std": 2.036841081318193
+      },
+      "rmse": 6.4585039780054405,
+      "samples": 331,
+      "spearman_rho": 0.40601383128405155,
+      "targets": {
+        "maximum": 44.0,
+        "mean": 7.381570998635537,
+        "minimum": 0.0,
+        "std": 6.865168471233189
+      }
+    },
+    "val": {
+      "constant_baselines": {
+        "train_mean": {
+          "mae": 5.452311635274956,
+          "prediction": 7.381570996978852,
+          "rmse": 6.852621650198698
+        },
+        "train_median": {
+          "mae": 5.413636362913883,
+          "prediction": 5.0,
+          "rmse": 7.53772331168955
+        }
+      },
+      "mae": 5.1265025933583575,
+      "pearson_r": 0.23910676573980585,
+      "predictions": {
+        "maximum": 13.68972396850586,
+        "mean": 6.587983120571483,
+        "minimum": 3.3670220375061035,
+        "std": 2.0277508671702087
+      },
+      "rmse": 6.8185704697216085,
+      "samples": 66,
+      "spearman_rho": 0.27122468689998513,
+      "targets": {
+        "maximum": 28.5,
+        "mean": 8.260606061328541,
+        "minimum": 0.75,
+        "std": 6.8480851621270835
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+Loaded configuration from configs/config.json
+=== Step 3: Evaluation ===
+Evaluating on device: cuda
+Loading test split from outputs/tables/baseline_manifest_split.csv...
+Loading model from outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth...
+Loading explicit DINOv3 backbone from /home/user/dagkusue1/vision-systems/FINAL/weights/dinov3-vits16-hf...
+Loading weights:   0%|          | 0/211 [00:00<?, ?it/s]Loading weights: 100%|██████████| 211/211 [00:00<00:00, 10254.67it/s]
+Backbone frozen. Extracted embedding dimension: 384
+Running inference on the test set...
+
+=== Evaluation Results ===
+Total Test Samples : 73
+MAE                : 4.6502 %
+RMSE               : 6.2596 %
+Pearson r          : -0.0971
+Spearman rho       : -0.1078
+==========================
+
+Saved evaluation plots to outputs/runs/baseline_regression_seed42/plots
+Saved raw predictions to outputs/runs/baseline_regression_seed42/tables/test_predictions.csv
+Saved metrics to outputs/runs/baseline_regression_seed42/tables/test_metrics.json

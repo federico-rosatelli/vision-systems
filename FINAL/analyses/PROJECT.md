@@ -2,243 +2,270 @@
 
 ## Current status
 
-The software prototype is substantially implemented, but the official experiment is not yet valid or reproducible. The immediate priority is correcting the 470-image baseline manifest and grouped split. Reported model metrics and genotype results remain unverified until their real artifacts are reproduced.
+The curated 470-image BBCH10 data contract, leakage-safe fixed split, reproducible frozen-DINOv3 training run, and one-time test evaluation are complete. The official whole-image baseline is valid and traceable, but it does not learn useful test-set ordering and is worse than constant predictors on test MAE. A controlled MSE-loss ablation also failed to improve validation performance.
+
+The next priority is a plant-focused baseline that uses only plants inside the metal frame and preserves enough resolution to see shot holes and yellow/brown pitting. Ranking-based training is paused until the visual representation produces useful validation ordering.
 
 ## 1. Project objective
 
-Build a reproducible computer-vision system that estimates cabbage stem flea beetle damage from rapeseed field images and supports defensible genotype-resistance analysis.
+Build a reproducible computer-vision system that estimates cabbage stem flea beetle (CSFB) feeding damage from rapeseed field images and supports defensible genotype-resistance analysis.
 
-The required first result is a frozen DINOv3 regression baseline trained on the supervisor-provided 470 high-quality BBCH10 images. The selected improvement direction is ranking-based learning. Plant-, leaf-, hole-, and pitting-level features are later extensions.
+The first required result was a frozen DINOv3 regression baseline trained on the supervisor-provided 470 consistently scored BBCH10 images. That baseline is now complete. The improvement direction remains ranking-based learning, but plant-focused preprocessing must be established first because the whole-image representation loses the small damage details.
 
-## 2. Source requirements
+## 2. Agreed biological target and source requirements
 
-The project brief, supervisor email, supplied scientific PDF, and `vision-lab.txt` establish these requirements:
+The project brief, supervisor email, scientific PDF, `vision-lab.txt`, and subsequent clarification establish the following working definition:
 
-- Begin with damage scoring on younger plants, especially BBCH10-11.
-- Use DINOv3 as the frozen baseline backbone.
-- Use the supervisor-curated 470-image training set. Its file contains 443 images with disagreement below 5 percentage points and 27 with disagreement exactly 5.
-- Keep the three views of each QR-coded plot in the same data split.
+> Predict the percentage of visible leaf area affected by CSFB feeding, including complete shot holes and yellow/brown pitting, aggregated across visible plants inside the metal frame.
+
+Additional interpretation:
+
+- Only plants inside the metal frame contribute to the score.
+- Both complete shot holes and yellow/brown pitting count as feeding damage.
+- Larger plants should contribute more according to their visible leaf area.
+- Hole damage and pitting should eventually be measured separately as well as combined.
+- A larger proportion of pitting relative to complete holes can indicate greater plant resistance; this does not imply that pitting should receive an arbitrary larger damage weight.
+- The 470 calibration labels are means of independent JLU and GAU visual scores selected for agreement no greater than 5 percentage points. They are stronger labels than the remaining data, but remain subjective estimates rather than exact segmentation ground truth.
+- Missing leaf area at damaged edges is relevant but cannot be estimated reliably without dedicated manual validation. Until such validation exists, report directly visible damage and identify missing-edge estimates as uncertain.
+- Begin with BBCH10-11. Treat BBCH13-15 as a separate, harder domain.
+- Keep all views from a QR-coded plot in the same split.
 - Do not construct ranking pairs from images with nearly equal damage.
-- Treat BBCH13-15 as a harder, separate domain.
-- Aggregate plant estimates by visible area when plant-level scoring is introduced.
-- Distinguish shot holes from yellow/brown pitting where possible.
-- Do not claim reliable missing-edge damage estimates without manual validation.
-- Compare genotypes only under compatible location, experiment, date, and BBCH conditions.
+- Compare genotypes only within compatible location, experiment, date, and BBCH conditions.
 
 ### Data safety rule
 
-The server dataset at `/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage` is strictly read-only. Never modify, rename, move, overwrite, or delete any source file or directory there.
+The server dataset at `/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage` is strictly read-only. Never modify, rename, move, overwrite, or delete source files there.
 
-All derived manifests, audits, split definitions, predictions, metrics, plots, logs, and model checkpoints must be written inside `vision-systems/FINAL/outputs/`. Project code and configuration changes must remain inside `vision-systems/FINAL/`.
+All derived manifests, audits, split definitions, predictions, metrics, plots, logs, and checkpoints belong inside `vision-systems/FINAL/outputs/`. Code and configuration changes remain inside `vision-systems/FINAL/`.
 
-## 3. Work already implemented
+## 3. Verified data contract
 
-### Verified implementation
+- Authoritative population: `RSFB-Phenotyping_training_set_scores.csv`.
+- Images: exactly 470 unique BBCH10 images.
+- Labels: mean of `score_jlu` and `score_gau`.
+- Label agreement: 443 images below 5 percentage points and 27 exactly at 5.
+- Metadata is joined from the full Groß-Gerau dual-rater CSV by normalized filename.
+- Every record has a canonical physical path, plot/QR group, genotype, date, location, experiment, BBCH, and both source scores.
+- No missing image paths, duplicate filenames, duplicate paths, mean-score mismatches, or plot-group leakage were found.
+- Fixed split: 331 train images, 66 validation images, and 73 test images.
+- The official test split was evaluated once after checkpoint selection and is now frozen.
 
-- Repository structure for data, models, training, evaluation, inference, visualization, configuration, and tests.
-- CSV parsing and manifest-generation code.
-- Group-aware train/validation/test splitting code.
-- PyTorch image dataset, augmentation, and data loaders.
-- Frozen vision-backbone model with an MLP regression head and bounded 0-100 output.
-- Huber/MSE regression and joint regression-ranking loss implementations.
-- Training loop with seeding, checkpointing, early stopping, CSV/TensorBoard logging, and plots.
-- Evaluation code for MAE, RMSE, Pearson correlation, Spearman correlation, predictions, and residual plots.
-- Single-image inference command.
-- Initial plot/genotype aggregation code.
-- Unit and mock pipeline tests.
-- A committed model checkpoint and generated manifest files.
+## 4. Implemented and verified software
 
-### Available commands
+- Curated manifest creation and machine-readable audit.
+- Group-aware deterministic splitting and leakage assertions.
+- PyTorch datasets, augmentation, and data loaders.
+- Explicit local DINOv3 backbone loading with no silent fallback.
+- Frozen DINOv3 backbone and bounded 0-100 MLP regression head.
+- Huber, MSE, and joint regression-ranking loss implementations.
+- Seeded training, validation-only checkpoint selection, early stopping, CSV/TensorBoard logs, and plots.
+- Checkpoint provenance containing model configuration, training configuration, dependency versions, Git commit, manifest hash, and DINOv3 weight hash.
+- Test evaluation with MAE, RMSE, Pearson, Spearman, pairwise ranking accuracy, predictions, and plots.
+- Constant mean/median reference evaluation.
+- Train/validation-only checkpoint diagnostics that refuse test-split access and report target/prediction spread and constant baselines.
+- Unit and mock pipeline tests. The current suite passes 12 tests.
 
-The pipeline is controlled through `main.py`:
+## 5. Official frozen-DINOv3 baseline
 
-```bash
-python main.py prepare_data --config configs/config.json
-python main.py train --config configs/config.json
-python main.py evaluate --config configs/config.json
-python main.py rank --config configs/config.json
-python main.py predict --image IMAGE.jpg --config configs/config.json
-python main.py plot_logs --config configs/config.json
-python main.py test --config configs/config.json
-```
+### Training and checkpoint selection
 
-These commands describe the implemented interface. They should not be treated as a reproducible final workflow until Steps 1-3 below are completed.
+- Run: `baseline_regression_seed42`
+- Backbone: frozen DINOv3 ViT-S/16
+- Input: complete 4000 x 3000 image resized to 224 x 224
+- Head: 384 -> 256 -> 1 with ReLU and dropout 0.3
+- Output: sigmoid bounded to 0-100
+- Loss: Huber, delta 1
+- Seed: 42
+- Selected epoch: 40
+- Best validation MAE: 5.1265
+- Manifest hash: verified
+- DINOv3 weight hash: verified
 
-### Existing but not yet verified as final results
+### One-time test results
 
-- A reported MAE of 3.47% and Spearman correlation of 0.57.
-- Claims that regression and joint-ranking experiments were compared.
-- Claims that a final genotype leaderboard was produced.
+| Metric | Result |
+|---|---:|
+| Test samples | 73 |
+| MAE | 4.6502 |
+| RMSE | 6.2596 |
+| Pearson r | -0.0971 |
+| Spearman rho | -0.1078 |
+| Pairwise accuracy, gap >= 5 | 0.4585 (1,169 pairs) |
+| Pairwise accuracy, gap >= 10 | 0.4579 (511 pairs) |
+| Pairwise accuracy, gap >= 20 | 0.4306 (72 pairs) |
 
-These claims currently lack committed real prediction tables, metrics, logs, experiment configurations, plots, and leaderboard artifacts.
+### Constant test references
 
-## 4. Current data findings
+| Predictor | MAE | RMSE |
+|---|---:|---:|
+| Training median, 5.0 | 4.0144 | 5.8997 |
+| Training mean, 7.3816 | 4.4497 | 5.6308 |
+| Frozen DINOv3 baseline | 4.6502 | 6.2596 |
 
-- The real dataset is located at `/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage`.
-- It contains 18,457 JPG files in the local nested copy, compared with 8,946 images documented in the brief; duplicate/nested image copies must be reconciled.
-- Four score CSVs exist: two single-rater field datasets, one 936-row Groß-Gerau dual-rater dataset, and one curated 470-row training-set CSV.
-- The authoritative baseline list is `RSFB-Phenotyping_training_set_scores.csv`, containing exactly 470 data rows.
-- Its QR code and genotype metadata should be joined from `2025_10_21_RSFB-Phenotyping_GG1_scores.csv` by normalized filename.
-- The current manifest recursively merges both CSVs, causing duplicate baseline records.
-- The current committed manifest contains 886 usable high-quality rows rather than the required 470.
-- A shared missing value, `unknown`, groups 443 test images together and produces an invalid 305/66/515 train/validation/test image distribution.
-- All committed BBCH values are `Unknown`, and nearly all extracted dates are missing.
-- The manifest uses `Genotyp`, while the ranking code expects `genotype`.
+### Interpretation
 
-## 5. Execution plan
+The model does not beat the constant predictors on test MAE and its test correlations and ranking accuracies are below chance. The acceptable-looking MAE is caused partly by the low and narrow score distribution and cannot be treated as evidence of useful damage recognition.
+
+On validation, the model has weak positive signal (Pearson 0.2391, Spearman 0.2712), but predictions are strongly compressed: prediction standard deviation is 2.03 while target standard deviation is 6.85. The complete-image 224 x 224 input makes seedlings, holes, and pitting extremely small, while soil, frame bars, and the QR card dominate the image and global pooled feature.
+
+This result is the official baseline outcome and must not be deleted, replaced, or silently re-evaluated.
+
+## 6. MSE-loss ablation
+
+A separate controlled run changed only the regression loss from Huber to MSE:
+
+- Run: `baseline_regression_mse_seed42`
+- Selected epoch: 39
+- Validation MAE: 5.2761
+- Validation RMSE: 6.7513
+- Validation Pearson r: 0.2003
+- Validation Spearman rho: 0.2103
+- Validation prediction standard deviation: 1.84
+
+The MSE model is worse than the official Huber checkpoint on validation MAE and both correlations, and prediction compression remains. It is rejected and was not evaluated on the test set.
+
+## 7. Execution plan from this point
 
 | Step | Workstream | Status |
 |---:|---|---|
-| 1 | Clean 470-image baseline manifest | Complete |
+| 1 | Clean 470-image manifest | Complete |
 | 2 | Leakage-safe fixed split | Complete |
 | 3 | Reproducible model artifacts | Complete |
-| 4 | Official DINOv3 regression baseline | Next |
-| 5 | Ranking-based comparison | Prototype exists; experiment pending |
-| 6 | Domain robustness | Pending |
-| 7 | Genotype resistance analysis | Prototype exists; validation pending |
-| 8 | Agronomic feature extraction | Optional stretch |
-| 9 | Packaging and presentation | Pending |
+| 4 | Whole-image frozen-DINOv3 baseline | Complete; negative result |
+| 5 | Train/validation diagnostics and MSE ablation | Complete |
+| 6 | Frame detection/cropping | Next |
+| 7 | Plant-focused patch baseline | Pending |
+| 8 | Ranking-based comparison on validated features | Paused pending Step 7 |
+| 9 | Hole and pitting feature extraction | Pending |
+| 10 | Domain robustness | Pending |
+| 11 | Genotype resistance analysis | Pending |
+| 12 | Packaging and presentation | Pending |
 
-### Step 1 — Rebuild the baseline data contract
+### Step 6 — Detect and crop the metal-frame interior
 
-Status: complete.
-
-1. Read the curated 470-row CSV as the only baseline population.
-2. Normalize filename extensions and case.
-3. Join QR code, genotype, plot, row, and column metadata from the full Groß-Gerau dual-rater CSV.
-4. Resolve each image to one canonical physical path rather than mapping duplicate basenames arbitrarily.
-5. Add fixed metadata: location, experiment, sampling date, and BBCH10.
-6. Reject or explicitly audit missing scores, paths, QR codes, genotypes, and duplicate image identities.
-7. Save a baseline manifest plus a machine-readable audit report.
-
-Exit criteria:
-
-- Exactly 470 unique manifest rows.
-- Every row has two scores, mean score, disagreement no greater than 5, canonical image path, QR/plot group, genotype, date, location, and BBCH.
-- No duplicate image identities or unresolved shared `unknown` group.
-
-### Step 2 — Create a valid fixed split
-
-Status: complete.
-
-1. Split by QR/plot group, never by image.
-2. Target approximately 70/15/15 train/validation/test proportions while balancing image counts and score bins.
-3. Save split group IDs separately for reproducibility.
-4. Add assertions for group leakage, duplicate leakage, missing groups, class balance, and expected population size.
+1. Define the valid scoring region as the area inside the metal frame.
+2. Implement a deterministic frame-interior crop or mask.
+3. Save overlays for train and validation examples; never alter source images.
+4. Manually review a small stratified sample covering low, medium, and high scores plus varied lighting and frame orientation.
+5. Record crop failures and exclude or handle them by an explicit rule rather than silently using the wrong region.
 
 Exit criteria:
 
-- No plot or duplicate image crosses splits.
-- Split proportions and score distributions are documented and reasonable.
-- The same split is reused by every experiment.
+- The crop contains the scored plants and excludes plants outside the frame.
+- Frame bars and QR cards are removed as far as practical.
+- A manually reviewed validation subset has an agreed crop success rate.
 
-### Step 3 — Make model artifacts reproducible
+### Step 7 — Build a plant-focused patch baseline
 
-Status: complete.
+1. Detect green plant regions inside the frame crop using a simple color/vegetation mask first.
+2. Form padded, high-resolution crops around individual seedlings or nearby plant clusters.
+3. Reject implausibly small regions and save overlays for inspection.
+4. Feed each crop through the same frozen DINOv3 backbone.
+5. Aggregate plant features or plant predictions using visible green area as the weight.
+6. Predict the existing combined damage percentage for the image.
+7. Select all preprocessing and model decisions using train and validation only.
+8. Compare against the official validation reference: MAE 5.1265 and Spearman 0.2712.
 
-1. Require an explicit DINOv3 backbone; remove silent DINOv2 fallback from official runs.
-2. Store model name, preprocessing, image size, head architecture, training mode, loss settings, seed, data hash, and Git commit in every checkpoint.
-3. Use separate output directories for every experiment and seed.
-4. Add environment setup and exact commands to a README or run guide.
+Minimum ablations:
 
-Exit criteria:
-
-- A checkpoint can be loaded without guessing its architecture or training configuration.
-- Every reported number is traceable to one run directory.
-
-### Step 4 — Run the official regression baseline
-
-Status: in progress. Authorized DINOv3 weights load successfully, reference metrics are complete, and the GPU smoke run is next.
-
-1. Calculate training-set mean and median predictor metrics.
-2. Train the frozen DINOv3 regression head on the corrected training split.
-3. Select the checkpoint using validation MAE only.
-4. Evaluate once on the untouched test split.
-5. Save metrics, predictions, learning curves, predicted-versus-true plots, residuals, score-bin errors, and best/worst examples.
-6. Compare model error with inter-rater disagreement.
-
-Required metrics:
-
-- MAE and RMSE.
-- Pearson and Spearman correlation.
-- Pairwise ranking accuracy at multiple true-score gaps.
-- Sample counts and confidence intervals.
+- Whole image versus frame crop.
+- Frame crop versus plant patches.
+- Uniform plant aggregation versus visible-area-weighted aggregation.
+- Input resolution and crop padding selected without accessing test results.
 
 Exit criteria:
 
-- A reproducible DINOv3 baseline report suitable for sending to the supervisor.
+- Plant patches visibly retain holes and pitting.
+- Validation MAE and ordering improve consistently rather than through one outlier.
+- Predictions have materially less range compression.
+- The pipeline and selection rule are frozen before any new test evaluation.
 
-### Step 5 — Evaluate ranking-based learning
+### Step 8 — Resume ranking-based learning only after Step 7
 
-1. Separate the pair-selection gap from the ranking-loss margin.
-2. Sample balanced pairs rather than materializing every possible pair.
-3. Compare gaps such as 5, 10, and 20 percentage points.
-4. Compare regression-only, ranking-only, and joint regression-ranking objectives.
-5. Keep the split, backbone, preprocessing, and evaluation protocol identical.
-6. Run multiple seeds and report uncertainty.
-
-Exit criteria:
-
-- A controlled ablation table establishes whether ranking improves regression or ordering performance consistently.
-
-### Step 6 — Test domain robustness
-
-1. Evaluate the selected model separately on other labeled BBCH10-11 locations.
-2. Evaluate BBCH13-15 separately as a domain-shift test.
-3. Report results by location, date, lighting condition where available, and BBCH.
-4. Do not combine these results into the original held-out baseline score.
+1. Keep the fixed grouped split and selected plant-focused representation unchanged.
+2. Separate pair-selection gap from ranking-loss margin.
+3. Sample balanced pairs rather than materializing every possible pair.
+4. Exclude nearly equal labels; compare gaps 5, 10, and 20.
+5. Compare regression-only with joint regression-ranking across multiple seeds.
+6. Select using validation MAE and Spearman/ranking accuracy, with the primary selection rule declared before testing.
 
 Exit criteria:
 
-- Clear evidence of where the model transfers and where it fails.
+- Ranking improves validation ordering without unacceptable regression degradation across seeds.
 
-### Step 7 — Produce defensible genotype rankings
+### Step 9 — Separate holes and pitting
+
+The 470 image-level labels supervise combined damage only. They do not provide separate pixel-level hole and pitting ground truth.
+
+1. Create a small manually annotated validation set with plant/leaf masks, hole masks, and yellow/brown-pitting masks.
+2. Report hole count/area and pitting count/area separately per plant.
+3. Also report their combined affected area and pitting-to-hole ratio.
+4. Do not invent severity weights from the combined CSV labels.
+5. Validate missing-edge estimates separately or explicitly omit them.
+
+### Step 10 — Domain robustness
+
+1. Evaluate the selected pipeline separately on other labeled BBCH10-11 locations.
+2. Treat BBCH13-15 as a separate domain-shift experiment.
+3. Report results by location, date, lighting, and BBCH where metadata permits.
+4. Do not merge domain-shift results into the original held-out baseline score.
+
+### Step 11 — Genotype resistance analysis
 
 1. Aggregate the three image views into plot-level predictions.
-2. Retain view-to-view variation as an uncertainty measure.
-3. Compare genotypes within compatible location/date/BBCH/experiment blocks.
-4. Aggregate replicated plots and report mean adjusted damage, confidence interval, plot count, and rank.
-5. Compare predicted rankings against manual-score rankings using Spearman correlation, pairwise accuracy, and top/bottom overlap.
+2. Preserve view-to-view variation as uncertainty.
+3. Compare genotypes only within compatible experimental blocks.
+4. Aggregate replicated plots and report mean adjusted damage, confidence intervals, plot count, and rank.
+5. Compare predicted and manual rankings using Spearman correlation, pairwise accuracy, and top/bottom overlap.
+6. Include separate hole/pitting features when validated because their ratio may carry resistance information beyond combined damage.
 
-Exit criteria:
+### Step 12 — Package and present
 
-- A traceable leaderboard with uncertainty and adequate replication, not merely a sorted list of test images or plots.
+1. Freeze configs, split IDs, selected checkpoints, metrics, predictions, plots, and hashes.
+2. Provide image/folder inference with CSV export.
+3. Write a report that includes the failed whole-image baseline, label subjectivity, resolution limitation, crop validation, and domain limitations.
+4. Prepare a concise presentation and recorded demonstration backup.
 
-### Step 8 — Add agronomic features
+## 8. Immediate next actions
 
-Status: stretch work after the scoring experiments are valid.
+Do these in order:
 
-1. Segment plants and the metal-frame region.
-2. Count plants inside the frame.
-3. Estimate plant area and use area-weighted aggregation.
-4. Prototype shot-hole and yellow/brown-pitting masks or detectors.
-5. Estimate leaf counts or BBCH class.
-6. Validate every feature against a small manually annotated test set.
+1. Implement a frame-interior crop and overlay visualization.
+2. Manually validate the crop on a stratified train/validation sample.
+3. Implement green-region plant proposal generation inside the frame.
+4. Save plant-patch overlays and verify that small holes and pitting remain visible.
+5. Train a frozen-DINOv3 plant-patch aggregation model using train/validation only.
+6. Compare it with the official validation baseline and constant references.
+7. Freeze the best complete pipeline before deciding whether a separately named second test evaluation is justified.
+8. Resume ranking experiments only if the new representation produces useful validation ordering.
 
-Exit criteria:
+Do not repeatedly inspect or tune against the 73-image test split. Do not proceed to genotype claims, UI work, or missing-edge reconstruction before the plant-focused scoring pipeline is validated.
 
-- Quantitative validation and overlays distinguish reliable features from exploratory outputs.
+## 9. Reproducible commands
 
-### Step 9 — Package and present
+Official baseline diagnostics, restricted to train and validation:
 
-1. Provide image and folder inference with CSV export.
-2. Optionally add a small Streamlit or Gradio interface.
-3. Freeze final configs, split IDs, checkpoints, metrics, and figures.
-4. Write a concise report covering data quality, methods, experiments, failures, limitations, and biological interpretation.
-5. Prepare a 10-12 slide presentation and recorded demo backup.
+```bash
+python -m src.evaluation.diagnose \
+  --checkpoint outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth \
+  --output-dir outputs/runs/baseline_regression_seed42/diagnostics
+```
 
-## 6. Immediate next actions
+MSE ablation training and diagnostics:
 
-Do these now, in order:
+```bash
+python main.py train --config configs/config_mse.json
+python -m src.evaluation.diagnose \
+  --checkpoint outputs/runs/baseline_regression_mse_seed42/checkpoints/best_model.pth \
+  --output-dir outputs/runs/baseline_regression_mse_seed42/diagnostics
+```
 
-1. Verify DINOv3 access and run a short one-epoch smoke test.
-2. Calculate mean and median reference metrics.
-3. Run the official regression training in `outputs/runs/baseline_regression_seed42/`.
-4. Evaluate the selected checkpoint once on the untouched test split.
-5. Save and review all metrics, predictions, plots, and failure examples.
+The official test command has already been run once. It is documented for reproducibility, not for iterative model selection:
 
-Do not begin UI or segmentation work until the corrected baseline experiment is complete.
+```bash
+python main.py evaluate --config configs/config.json
+```
 
-## 7. Definition of done
+## 10. Definition of done
 
-The project is complete when another student can recreate the manifest and fixed split, train and evaluate the baseline and best ranking extension, reproduce every reported metric and figure, and trace genotype rankings back through plots to source images. Claims must clearly distinguish validated results from exploratory features and must account for label disagreement, group leakage, domain shift, and biological confounding.
+The project is complete when another student can recreate the manifest and fixed split, reproduce the official baseline and selected plant-focused/ranking experiments, regenerate every reported metric and figure, and trace genotype rankings through plots to source images. Claims must distinguish validated results from exploratory features and account for subjective labels, grouped leakage, test-set isolation, image resolution, domain shift, and biological confounding.
