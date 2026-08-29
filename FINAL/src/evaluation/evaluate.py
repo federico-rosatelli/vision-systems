@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import numpy as np
 import pandas as pd
@@ -11,6 +12,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from src.data.dataset import get_dataloaders
 from src.models.dinov3_regressor import DINOv3Regressor
 from src.visualization.plots import plot_pred_vs_true, plot_residuals
+
+
+def pairwise_ranking_accuracy(y_true, y_pred, minimum_gap):
+    correct = 0
+    total = 0
+    for i in range(len(y_true)):
+        for j in range(i + 1, len(y_true)):
+            true_difference = y_true[i] - y_true[j]
+            if abs(true_difference) < minimum_gap:
+                continue
+            predicted_difference = y_pred[i] - y_pred[j]
+            correct += (true_difference > 0) == (predicted_difference > 0)
+            total += 1
+    return {"accuracy": correct / total if total else None, "pair_count": total}
 
 def evaluate_model(manifest, model_path, batch_size=32, out_dir=None, num_workers=4, image_size=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -115,5 +130,26 @@ def evaluate_model(manifest, model_path, batch_size=32, out_dir=None, num_worker
     results_csv = os.path.join(tables_dir, "test_predictions.csv")
     results_df.to_csv(results_csv, index=False)
     print(f"Saved raw predictions to {results_csv}")
+
+    metrics = {
+        "test_samples": len(y_true),
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "pearson_r": float(pearson_r),
+        "spearman_rho": float(spearman_rho),
+        "pairwise_ranking": {
+            str(gap): pairwise_ranking_accuracy(y_true, y_pred, gap)
+            for gap in (5.0, 10.0, 20.0)
+        },
+        "checkpoint_path": os.path.abspath(model_path),
+        "checkpoint_epoch": checkpoint.get("epoch"),
+        "best_validation_mae": checkpoint.get("best_val_mae"),
+        "run_metadata": checkpoint.get("run_metadata"),
+    }
+    metrics_path = os.path.join(tables_dir, "test_metrics.json")
+    with open(metrics_path, "w", encoding="utf-8") as handle:
+        json.dump(metrics, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    print(f"Saved metrics to {metrics_path}")
     
     return results_df
