@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+from pathlib import Path
+from transformers import AutoModel
 
 class DINOv3Regressor(nn.Module):
     """
@@ -22,22 +24,26 @@ class DINOv3Regressor(nn.Module):
         self.image_size = image_size
         if list(output_range) != [0.0, 100.0]:
             raise ValueError("Only the fixed damage output range [0, 100] is supported")
-        print(f"Loading explicit backbone {model_name} from facebookresearch/dinov3...")
+        if not weights_path:
+            raise ValueError(
+                "weights_path must point to the downloaded Hugging Face DINOv3 directory"
+            )
+        weights_path = Path(weights_path).expanduser().resolve()
+        if not (weights_path / "config.json").is_file():
+            raise FileNotFoundError(f"DINOv3 config not found in: {weights_path}")
+        if not (weights_path / "model.safetensors").is_file():
+            raise FileNotFoundError(f"DINOv3 weights not found in: {weights_path}")
+
+        self.weights_path = str(weights_path)
+        print(f"Loading explicit DINOv3 backbone from {weights_path}...")
         try:
-            load_kwargs = {"pretrained": True}
-            if weights_path:
-                from pathlib import Path
-                weights_path = Path(weights_path).expanduser().resolve()
-                if not weights_path.is_file():
-                    raise FileNotFoundError(f"DINOv3 weights not found: {weights_path}")
-                load_kwargs["weights"] = str(weights_path)
-            self.backbone = torch.hub.load(
-                "facebookresearch/dinov3", model_name, **load_kwargs
+            self.backbone = AutoModel.from_pretrained(
+                weights_path, local_files_only=True
             )
         except Exception as error:
             raise RuntimeError(
-                f"Failed to load required DINOv3 backbone {model_name!r}; "
-                "official runs do not silently fall back to another model"
+                f"Failed to load required DINOv3 backbone from {weights_path}; "
+                "official runs do not fall back to another model"
             ) from error
             
         # Freeze the backbone completely (Phase 2 requirement)
@@ -46,11 +52,7 @@ class DINOv3Regressor(nn.Module):
             
         self.backbone.eval() # Ensure dropout/batchnorm in backbone are disabled
             
-        # Determine embedding dimension dynamically (e.g., 384 for ViT-S)
-        dummy_input = torch.randn(1, 3, image_size, image_size)
-        with torch.no_grad():
-            dummy_output = self.backbone(dummy_input)
-            embed_dim = dummy_output.shape[1]
+        embed_dim = self.backbone.config.hidden_size
             
         print(f"Backbone frozen. Extracted embedding dimension: {embed_dim}")
         
@@ -71,7 +73,7 @@ class DINOv3Regressor(nn.Module):
         # Ensure backbone stays in eval mode and no gradients are tracked for it
         self.backbone.eval()
         with torch.no_grad():
-            features = self.backbone(x)
+            features = self.backbone(pixel_values=x).pooler_output
             
         # Pass features through the trainable regression head
         logits = self.regression_head(features)

@@ -63,7 +63,8 @@ def train_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber", patie
     )
     if weights_path:
         from src.training.provenance import sha256_file
-        run_metadata["weights_sha256"] = sha256_file(weights_path)
+        weights_file = os.path.join(weights_path, "model.safetensors")
+        run_metadata["weights_sha256"] = sha256_file(weights_file)
     save_json(run_metadata, os.path.join(run_dir, "run_config.json"))
     
     print(f"Loading data from {manifest}...")

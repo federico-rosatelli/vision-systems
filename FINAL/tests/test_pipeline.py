@@ -92,7 +92,10 @@ def test_full_pipeline():
     
     # 5. Model Forward Pass
     print("\n--- Testing Model Forward Pass ---")
-    model = DINOv3Regressor(model_name='dinov3_vits16', head_width=32)
+    model = DINOv3Regressor(
+        model_name='dinov3_vits16', weights_path='weights/dinov3-vits16-hf',
+        head_width=32, image_size=224
+    )
     model.eval() # Ensure eval mode
     
     # Since backbone is frozen, gradients should only be required for the regression_head

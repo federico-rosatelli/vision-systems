@@ -5,18 +5,15 @@
     "out_manifest": "outputs/tables/baseline_manifest_split.csv",
     "split_audit": "outputs/tables/baseline_split_audit.json",
     "split_groups": "outputs/tables/baseline_split_groups.json",
-    
-    "disagreement_threshold": 5.0,
     "test_size": 0.15,
     "val_size": 0.15,
-    
-    "epochs": 50,
-    "batch_size": 32,
+    "epochs": 1,
+    "batch_size": 16,
     "lr": 0.001,
     "loss": "huber",
-    "patience": 10,
+    "patience": 1,
     "out_dir": "outputs/runs",
-    "run_name": "baseline_regression_seed42",
+    "run_name": "smoke_dinov3_seed42",
     "seed": 42,
     "num_workers": 4,
     "image_size": 224,
@@ -26,11 +23,5 @@
     "dropout_p": 0.3,
     "training_mode": "regression",
     "high_quality_only": false,
-    "joint_margin": 5.0,
-    
-    "model_path": "outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth",
-    "preds_file": "outputs/runs/baseline_regression_seed42/tables/test_predictions.csv",
-    "out_rank": "outputs/tables/resistance_leaderboard.csv",
-    
-    "log_file": "outputs/runs/baseline_regression_seed42/logs/training_log.csv"
+    "joint_margin": 5.0
 }

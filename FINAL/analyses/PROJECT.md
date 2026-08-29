@@ -148,7 +148,7 @@ Exit criteria:
 
 ### Step 4 — Run the official regression baseline
 
-Status: waiting for authorized DINOv3 weights and GPU access. Mean/median references are complete.
+Status: in progress. Authorized DINOv3 weights load successfully, reference metrics are complete, and the GPU smoke run is next.
 
 1. Calculate training-set mean and median predictor metrics.
 2. Train the frozen DINOv3 regression head on the corrected training split.

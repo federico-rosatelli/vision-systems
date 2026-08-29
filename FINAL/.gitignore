@@ -28,6 +28,11 @@ venv/
 weights/
 *.safetensors
 
+# Large and temporary experiment artifacts
+outputs/runs/*/checkpoints/
+outputs/runs/*/tensorboard/
+outputs/runs/smoke_*/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 

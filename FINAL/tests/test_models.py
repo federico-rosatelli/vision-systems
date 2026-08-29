@@ -1,11 +1,18 @@
 import unittest
 import torch
+from pathlib import Path
 from src.models.dinov3_regressor import DINOv3Regressor, get_loss_function
 
 class TestModels(unittest.TestCase):
     def setUp(self):
         # Official runs require an explicit DINOv3 backbone.
-        self.model = DINOv3Regressor(model_name='dinov3_vits16', head_width=64, dropout_p=0.1)
+        weights = Path('weights/dinov3-vits16-hf')
+        if not weights.is_dir():
+            self.skipTest('Authorized local DINOv3 weights are unavailable')
+        self.model = DINOv3Regressor(
+            model_name='dinov3_vits16', weights_path=str(weights),
+            head_width=64, dropout_p=0.1, image_size=224
+        )
         
     def test_frozen_backbone(self):
         """Ensure backbone requires no gradients and head requires gradients."""
