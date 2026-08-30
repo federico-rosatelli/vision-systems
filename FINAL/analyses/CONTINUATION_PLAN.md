@@ -68,6 +68,8 @@ Final result: 30/30 detected and manually approved, with 15 train and 15 validat
 
 ## Phase 2 — Plant-region detection
 
+Status: complete. The 30-image vegetation-mask and patch review was approved on 2026-08-30.
+
 ### Implementation
 
 1. Detect green vegetation inside the frame using HSV or Lab color thresholds.
@@ -93,6 +95,17 @@ Start with classical image processing. Introduce SAM, YOLO, or RF-DETR only if t
 - Plant proposals are usable across the reviewed sample.
 - Every failure mode has a documented fallback.
 - Source images remain unchanged.
+
+Implementation artifacts:
+
+- Configuration: `configs/plant_region_audit.json`
+- Detector and audit generator: `src/preprocessing/plant_regions.py`
+- Review table: `outputs/plant_region_audit/plant_region_audit.csv`
+- Summary: `outputs/plant_region_audit/plant_region_audit_summary.json`
+- Mask/box overview: `outputs/plant_region_audit/plant_region_contact_sheet.png`
+- Patch overview: `outputs/plant_region_audit/plant_patch_contact_sheet.png`
+
+Final result: every approved frame crop contains proposals. Across the 30-image audit, 191 regions were retained, with a median of 6 regions per image and a range of 3 to 11. The reviewer approved the high-contrast vegetation overlays, region boxes, and high-resolution patches. The conservative green mask is used to locate plant or nearby-seedling patches; it is not yet treated as a validated full-leaf segmentation or an area-weight ground truth.
 
 ## Phase 3 — Plant-patch dataset
 

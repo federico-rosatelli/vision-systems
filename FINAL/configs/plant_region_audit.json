@@ -1,0 +1,14 @@
+{
+  "frame_audit_csv": "outputs/frame_audit/frame_audit.csv",
+  "output_dir": "outputs/plant_region_audit",
+  "hue_min": 25,
+  "hue_max": 100,
+  "saturation_min": 35,
+  "value_min": 45,
+  "excess_green_min": 5,
+  "minimum_green_area": 30,
+  "grouping_kernel_fraction": 0.018,
+  "minimum_group_area": 200,
+  "minimum_region_green_area": 200,
+  "patch_padding_fraction": 0.025
+}

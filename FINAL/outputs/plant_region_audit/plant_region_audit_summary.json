@@ -1,0 +1,47 @@
+{
+  "automatic_status_counts": {
+    "detected": 30
+  },
+  "frame_audit_csv": "/home/user/dagkusue1/vision-systems/FINAL/outputs/frame_audit/frame_audit.csv",
+  "green_fraction": {
+    "maximum": 0.030515288410753936,
+    "median": 0.013943455856443597,
+    "minimum": 0.007829993416615333
+  },
+  "manual_review_complete": true,
+  "manual_status_counts": {
+    "approved": 30
+  },
+  "parameters": {
+    "excess_green_min": 5,
+    "grouping_kernel_fraction": 0.018,
+    "hue_max": 100,
+    "hue_min": 25,
+    "minimum_green_area": 30,
+    "minimum_group_area": 200,
+    "minimum_region_green_area": 200,
+    "patch_padding_fraction": 0.025,
+    "saturation_min": 35,
+    "value_min": 45
+  },
+  "region_count": {
+    "maximum": 11,
+    "median": 6.0,
+    "minimum": 3,
+    "total": 191
+  },
+  "reviewed_at_utc": "2026-08-30T14:06:10.405084+00:00",
+  "reviewer": "Emrullah",
+  "sample_size": 30,
+  "schema_version": 1,
+  "score_bin_counts": {
+    "high_8_15": 8,
+    "low_0_3": 8,
+    "medium_3_8": 8,
+    "very_high_15_plus": 6
+  },
+  "split_counts": {
+    "train": 15,
+    "val": 15
+  }
+}

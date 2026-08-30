@@ -134,7 +134,7 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 4 | Whole-image frozen-DINOv3 baseline | Complete; negative result |
 | 5 | Train/validation diagnostics and MSE ablation | Complete |
 | 6 | Frame detection/cropping | Complete |
-| 7 | Plant-focused patch baseline | Next |
+| 7 | Plant-focused patch baseline | Plant proposals complete; dataset/model next |
 | 8 | Ranking-based comparison on validated features | Paused pending Step 7 |
 | 9 | Hole and pitting feature extraction | Pending |
 | 10 | Domain robustness | Pending |
@@ -186,6 +186,43 @@ Exit criteria:
 - A manually reviewed validation subset has an agreed crop success rate.
 
 ### Step 7 — Build a plant-focused patch baseline
+
+Plant-proposal status: complete. Implemented and manually approved on the 30-image frame audit on 2026-08-30; plant-patch dataset/model integration is next.
+
+Implemented components:
+
+- `src/preprocessing/plant_regions.py` creates a conservative green-vegetation mask in each rectified frame crop, removes tiny noise, groups nearby leaf fragments, extracts padded high-resolution plant/seedling-cluster patches, and records all proposal metadata.
+- `configs/plant_region_audit.json` fixes the HSV/excess-green thresholds, component thresholds, grouping distance, padding, and output path.
+- `tests/test_plant_regions.py` checks vegetation versus soil discrimination, tiny-noise rejection, grouping, and auditable manual approval.
+- `outputs/plant_region_audit/` contains masks, overlays, patches, audit tables, a summary, and review contact sheets.
+
+Initial automatic audit:
+
+- Input: the 30 manually approved frame crops; 15 train and 15 validation images and no test images.
+- At least one plant proposal was found in every image.
+- 191 total proposals; median 6 per image, range 3 to 11.
+- Median detected-green fraction: 1.394%; range 0.783% to 3.052%.
+- Nine very-low-area proposals dominated by soil/sticks or barely clipped vegetation were removed by requiring at least 200 detected green pixels per retained region.
+- The mask is currently a proposal mechanism only. It has not been validated as a full leaf-area segmentation and must not yet be used as biological area ground truth.
+- Manual review approved the high-contrast magenta vegetation masks, red proposal boxes, and retained high-resolution patches across all 30 audit images.
+
+Reproduction commands:
+
+```bash
+python -m src.preprocessing.plant_regions --config configs/plant_region_audit.json
+montage outputs/plant_region_audit/overlays/*.jpg \
+  -thumbnail 400x400 -set label '%t' -geometry 400x430+8+8 -tile 5x6 \
+  outputs/plant_region_audit/plant_region_contact_sheet.png
+montage outputs/plant_region_audit/patches/*.jpg \
+  -thumbnail 180x180 -set label '%t' -geometry 180x210+6+6 -tile 10x20 \
+  outputs/plant_region_audit/plant_patch_contact_sheet.png
+```
+
+Manual completion requirement:
+
+- Confirm on `plant_region_contact_sheet.png` that green highlights correspond to plants and red boxes capture the intended plant/nearby-seedling regions.
+- Confirm on `plant_patch_contact_sheet.png` that retained crops contain useful plant material and keep visible holes/pitting at higher resolution.
+- Report any incorrect filename/region identifier before marking the plant-proposal stage complete.
 
 1. Detect green plant regions inside the frame crop using a simple color/vegetation mask first.
 2. Form padded, high-resolution crops around individual seedlings or nearby plant clusters.
