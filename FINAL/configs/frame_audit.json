@@ -1,0 +1,8 @@
+{
+  "manifest": "outputs/tables/baseline_manifest_split.csv",
+  "output_dir": "outputs/frame_audit",
+  "sample_size": 30,
+  "seed": 42,
+  "working_width": 1000,
+  "interior_inset_fraction": 0.025
+}

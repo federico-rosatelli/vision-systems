@@ -1,0 +1,28 @@
+{
+  "automatic_status_counts": {
+    "detected": 30
+  },
+  "interior_inset_fraction": 0.025,
+  "manifest": "/home/user/dagkusue1/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
+  "manual_review_complete": true,
+  "manual_status_counts": {
+    "approved": 30
+  },
+  "mean_confidence": 0.8122680919277083,
+  "reviewed_at_utc": "2026-08-30T13:27:39.479831+00:00",
+  "reviewer": "Emrullah",
+  "sample_size": 30,
+  "schema_version": 1,
+  "score_bin_counts": {
+    "high_8_15": 8,
+    "low_0_3": 8,
+    "medium_3_8": 8,
+    "very_high_15_plus": 6
+  },
+  "seed": 42,
+  "split_counts": {
+    "train": 15,
+    "val": 15
+  },
+  "working_width": 1000
+}

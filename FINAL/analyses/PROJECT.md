@@ -133,8 +133,8 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 3 | Reproducible model artifacts | Complete |
 | 4 | Whole-image frozen-DINOv3 baseline | Complete; negative result |
 | 5 | Train/validation diagnostics and MSE ablation | Complete |
-| 6 | Frame detection/cropping | Next |
-| 7 | Plant-focused patch baseline | Pending |
+| 6 | Frame detection/cropping | Complete |
+| 7 | Plant-focused patch baseline | Next |
 | 8 | Ranking-based comparison on validated features | Paused pending Step 7 |
 | 9 | Hole and pitting feature extraction | Pending |
 | 10 | Domain robustness | Pending |
@@ -142,6 +142,36 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 12 | Packaging and presentation | Pending |
 
 ### Step 6 — Detect and crop the metal-frame interior
+
+Status: complete. Implemented and manually approved on a deterministic, stratified 30-image train/validation audit on 2026-08-30.
+
+Implemented components:
+
+- `src/preprocessing/frame_crop.py` reads EXIF-oriented images, detects the galvanized outer frame using a color-filtered probabilistic Hough transform, rejects implausible geometry, rectifies the interior using a perspective transform, and records failures explicitly.
+- `configs/frame_audit.json` fixes the manifest, seed, sample size, working resolution, inset, and output path.
+- `tests/test_frame_crop.py` checks synthetic frame detection, crop generation, test-split exclusion, balanced train/validation sampling, and score-stratum coverage.
+- `outputs/frame_audit/` contains the review CSV, machine-readable summary, masks, rectified crops, individual overlays, and contact sheets.
+
+Initial automatic audit:
+
+- 30 images: 15 train and 15 validation; no test images.
+- Score coverage: 8 low, 8 medium, 8 high, and 6 very-high examples.
+- Automatic detections: 30/30.
+- Mean geometric confidence: 0.8123.
+- Visual inspection indicates consistent outer-frame localization. Small QR-card edges and internal crossbars remain in some rectified crops; they will be excluded by the vegetation mask where possible rather than erased from source imagery.
+- Manual review approved all 30 green outer-frame polygons and all 30 rectified inside-frame crops.
+
+Reproduction command:
+
+```bash
+python -m src.preprocessing.frame_crop --config configs/frame_audit.json
+```
+
+Manual completion requirement:
+
+- Review `outputs/frame_audit/frame_audit_contact_sheet.png` and confirm that each green polygon follows the outer square.
+- Review `outputs/frame_audit/frame_crop_contact_sheet.png` and confirm that each crop represents the intended inside-frame scoring region.
+- Record any incorrect filename in `outputs/frame_audit/frame_audit.csv` before marking this step complete.
 
 1. Define the valid scoring region as the area inside the metal frame.
 2. Implement a deterministic frame-interior crop or mask.
