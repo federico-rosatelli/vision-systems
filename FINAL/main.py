@@ -5,6 +5,7 @@ import sys
 from src.data.make_baseline_manifest import build_baseline_manifest
 from src.data.make_baseline_splits import create_baseline_splits
 from src.training.train import train_model
+from src.training.train_patch import train_patch_model
 from src.evaluation.evaluate import evaluate_model
 from src.evaluation.genotype_ranking import rank_genotypes
 from src.inference.predict import predict_single_image
@@ -13,7 +14,7 @@ from tests.test_pipeline import test_full_pipeline
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CSFB Damage Quantification Pipeline")
-    parser.add_argument("action", type=str, choices=["prepare_data", "create_splits", "train", "evaluate", "rank", "predict", "plot_logs", "test", "all"],
+    parser.add_argument("action", type=str, choices=["prepare_data", "create_splits", "train", "train_patch", "evaluate", "rank", "predict", "plot_logs", "test", "all"],
                         help="Pipeline action to perform")
     
     # Data preparation arguments
@@ -51,6 +52,7 @@ def parse_args():
                         help="Mode of training: regression or joint (ranking)")
     parser.add_argument("--high_quality_only", type=lambda x: (str(x).lower() == 'true'), default=True, help="Filter for high quality images during training")
     parser.add_argument("--joint_margin", type=float, default=5.0, help="Margin for Joint Ranking loss")
+    parser.add_argument("--aggregation", type=str, default="weighted", choices=["weighted", "uniform"], help="Aggregation method for patch features (train_patch only)")
     
     # Evaluation arguments
     parser.add_argument("--model_path", type=str, default="outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth",
@@ -127,6 +129,28 @@ def main():
             head_width=args.head_width,
             dropout_p=args.dropout_p,
             weights_path=args.weights_path,
+        )
+        
+    if args.action in ["train_patch", "all"]:
+        print("=== Step 2: Training (Patch Baseline) ===")
+        train_patch_model(
+            manifest=args.out_manifest,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            lr=args.lr,
+            loss=args.loss,
+            patience=args.patience,
+            out_dir=args.out_dir,
+            run_name=args.run_name,
+            seed=args.seed,
+            num_workers=args.num_workers,
+            image_size=args.image_size,
+            high_quality_only=args.high_quality_only,
+            model_name=args.model_name,
+            head_width=args.head_width,
+            dropout_p=args.dropout_p,
+            weights_path=args.weights_path,
+            aggregation=args.aggregation,
         )
         
     if args.action in ["evaluate", "all"]:

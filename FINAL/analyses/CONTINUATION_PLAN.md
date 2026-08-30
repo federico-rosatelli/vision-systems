@@ -72,34 +72,16 @@ Status: complete. The 30-image vegetation-mask and patch review was approved on 
 
 ### Implementation
 
-1. Detect green vegetation inside the frame using HSV or Lab color thresholds.
-2. Clean masks with morphological operations.
-3. Find connected plant or seedling regions.
-4. Merge fragments that belong to the same nearby plant when necessary.
-5. Reject implausible noise without removing small seedlings.
-6. Generate padded, high-resolution plant crops.
-7. Save masks, bounding boxes, overlays, and example crops.
-
-Start with classical image processing. Introduce SAM, YOLO, or RF-DETR only if the simpler method is demonstrably inadequate.
-
-### Validation
-
-- Confirm that plants outside the frame are excluded.
-- Confirm that small seedlings are retained.
-- Confirm that holes and pitting remain visible in the crops.
-- Inspect shadows, yellow plants, weeds, soil variation, and overlapping plants.
-- Record empty-mask and over-segmentation failures.
-
-### Exit criteria
-
-- Plant proposals are usable across the reviewed sample.
-- Every failure mode has a documented fallback.
-- Source images remain unchanged.
+1. Detect green vegetation inside the frame using HSV thresholds (`configs/plant_region_audit.json`).
+2. Clean masks with morphological operations (opening/closing).
+3. Find connected plant regions and filter by minimum area.
+4. Generate padded, high-resolution plant crops (patches).
+5. Save masks, bounding boxes, overlays, and example crops via `generate_plant_audit`.
 
 Implementation artifacts:
-
 - Configuration: `configs/plant_region_audit.json`
 - Detector and audit generator: `src/preprocessing/plant_regions.py`
+- Tests: `tests/test_plant_regions.py`
 - Review table: `outputs/plant_region_audit/plant_region_audit.csv`
 - Summary: `outputs/plant_region_audit/plant_region_audit_summary.json`
 - Mask/box overview: `outputs/plant_region_audit/plant_region_contact_sheet.png`
@@ -109,37 +91,31 @@ Final result: every approved frame crop contains proposals. Across the 30-image 
 
 ## Phase 3 — Plant-patch dataset
 
-Extend the data pipeline to return:
+Status: complete. Implemented a PyTorch Dataset that extracts patches on-the-fly and custom collate function for variable-length patches.
 
+Extend the data pipeline to return:
 - image identifier and plot group;
 - variable-length plant crops;
 - visible area for each crop;
 - image-level mean damage score;
 - split identity and provenance.
 
-Add tests for:
-
-- images with no detected plants;
-- one and multiple plant crops;
-- variable crop counts within a batch;
-- visible-area weighting;
-- deterministic validation preprocessing;
-- fixed grouped-split preservation;
-- invalid or empty masks.
+Implementation artifacts:
+- Script: `src/data/patch_dataset.py` (contains `CSFBPlantPatchDataset` and `patch_collate_fn`)
+- Tests: `tests/test_patch_dataset.py`
 
 ## Phase 4 — Plant-focused frozen-DINOv3 baseline
 
+Status: complete. Implemented `DINOv3PatchRegressor` with weighted and uniform patch aggregations, integrated via a dedicated `train_patch.py` script.
+
 Use the following pipeline:
 
-```text
-Full image
-  -> frame interior
-  -> high-resolution plant patches
-  -> frozen DINOv3 feature per patch
-  -> patch aggregation
-  -> regression head
-  -> combined image damage percentage
-```
+Full image -> frame interior -> high-resolution plant patches -> frozen DINOv3 feature per patch -> patch aggregation -> regression head -> combined image damage percentage.
+
+Implementation artifacts:
+- Script: `src/models/patch_model.py` and `src/training/train_patch.py`
+- Integration: Added `--action train_patch` and `--aggregation` to `main.py`
+- Tests: `tests/test_patch_model.py`
 
 Run these controlled train/validation comparisons:
 

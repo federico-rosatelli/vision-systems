@@ -134,12 +134,13 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 4 | Whole-image frozen-DINOv3 baseline | Complete; negative result |
 | 5 | Train/validation diagnostics and MSE ablation | Complete |
 | 6 | Frame detection/cropping | Complete |
-| 7 | Plant-focused patch baseline | Plant proposals complete; dataset/model next |
-| 8 | Ranking-based comparison on validated features | Paused pending Step 7 |
-| 9 | Hole and pitting feature extraction | Pending |
-| 10 | Domain robustness | Pending |
-| 11 | Genotype resistance analysis | Pending |
-| 12 | Packaging and presentation | Pending |
+| 7 | Plant-focused patch extraction | Complete |
+| 8 | Plant-patch dataset | Complete |
+| 9 | Plant-focused patch baseline (DINOv3 aggregation) | Complete |
+| 10 | Ranking-based comparison on validated features | Paused pending Step 11 |
+| 11 | Domain robustness | Pending |
+| 12 | Genotype resistance analysis | Pending |
+| 13 | Packaging and presentation | Pending |
 
 ### Step 6 — Detect and crop the metal-frame interior
 

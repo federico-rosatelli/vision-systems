@@ -297,7 +297,7 @@ def generate_frame_audit(manifest, output_dir, sample_size=30, seed=42,
     audit.to_csv(output_dir / "frame_audit.csv", index=False)
     summary = {
         "schema_version": 1,
-        "manifest": str(Path(manifest).resolve()),
+        "manifest": str(Path(manifest)),
         "sample_size": int(len(audit)), "seed": seed,
         "working_width": working_width,
         "interior_inset_fraction": interior_inset_fraction,
