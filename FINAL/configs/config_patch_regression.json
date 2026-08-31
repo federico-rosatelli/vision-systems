@@ -1,0 +1,21 @@
+{
+    "out_manifest": "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/manifest.csv",
+    
+    "epochs": 50,
+    "batch_size": 32,
+    "lr": 0.001,
+    "loss": "huber",
+    "patience": 10,
+    "out_dir": "outputs/runs",
+    "run_name": "patch_regression_seed42",
+    "seed": 42,
+    "num_workers": 4,
+    "image_size": 224,
+    "model_name": "dinov3_vits16",
+    "weights_path": "weights/dinov3-vits16-hf",
+    "head_width": 256,
+    "dropout_p": 0.3,
+    "training_mode": "regression",
+    "high_quality_only": false,
+    "aggregation": "weighted"
+}
