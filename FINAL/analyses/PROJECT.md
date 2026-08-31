@@ -137,7 +137,7 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 7 | Plant-focused patch extraction | Complete |
 | 8 | Plant-patch dataset | Complete |
 | 9 | Plant-focused patch baseline (DINOv3 aggregation) | Complete |
-| 10 | Ranking-based comparison on validated features | Paused pending Step 11 |
+| 10 | Ranking-based comparison on validated features | Code Complete, pending remote execution |
 | 11 | Domain robustness | Pending |
 | 12 | Genotype resistance analysis | Pending |
 | 13 | Packaging and presentation | Pending |

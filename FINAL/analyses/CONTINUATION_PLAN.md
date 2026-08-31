@@ -160,6 +160,7 @@ If none of the plant-focused approaches improves validation performance, documen
 
 ## Phase 6 — Ranking-based experiment
 
+**Status: Code infrastructure complete. Pending execution on remote server.**
 Resume ranking only after the representation produces useful validation ordering.
 
 1. Keep the selected plant-focused representation fixed.
