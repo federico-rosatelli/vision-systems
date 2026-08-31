@@ -109,3 +109,34 @@ def test_patch_collate_fn():
     assert targets.shape[0] == 2
     
     assert plot_groups == ["G1", "G2"]
+
+def test_paired_dataset_and_collate_fn(dummy_manifest):
+    manifest_path, _ = dummy_manifest
+    
+    from src.data.patch_dataset import CSFBPatchPairedDataset, patch_paired_collate_fn
+    
+    # We use margin=10. The dummy manifest has images with scores 12.5 and 0.0.
+    # The difference is 12.5, which is > 10, so they should form 1 pair.
+    dataset = CSFBPatchPairedDataset(manifest_path, min_plant_area=100, margin=10.0)
+    
+    assert len(dataset) == 1
+    
+    patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B = dataset[0]
+    
+    assert patch_A.dim() == 4
+    assert patch_B.dim() == 4
+    assert target_A.item() == 12.5
+    assert target_B.item() == 0.0
+    
+    # Test collate function
+    batch = [dataset[0]]
+    
+    (patch_tensors_A, area_tensors_A, targets_A, plot_groups_A, 
+     patch_tensors_B, area_tensors_B, targets_B, plot_groups_B) = patch_paired_collate_fn(batch)
+     
+    assert len(patch_tensors_A) == 1
+    assert len(patch_tensors_B) == 1
+    assert targets_A.shape[0] == 1
+    assert targets_B.shape[0] == 1
+    assert targets_A[0].item() == 12.5
+    assert targets_B[0].item() == 0.0

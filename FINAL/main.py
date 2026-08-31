@@ -151,6 +151,8 @@ def main():
             dropout_p=args.dropout_p,
             weights_path=args.weights_path,
             aggregation=args.aggregation,
+            training_mode=args.training_mode,
+            joint_margin=args.joint_margin,
         )
         
     if args.action in ["evaluate", "all"]:

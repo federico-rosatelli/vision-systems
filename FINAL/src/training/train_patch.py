@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from src.data.patch_dataset import get_patch_dataloaders
 from src.models.patch_model import DINOv3PatchRegressor
 from src.models.dinov3_regressor import get_loss_function
+from src.models.losses import JointRankingRegressionLoss
 from src.visualization.plots import plot_training_history
 from src.training.provenance import build_run_metadata, save_json
 from scipy.stats import spearmanr, pearsonr
@@ -56,7 +57,8 @@ def train_patch_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber",
                       out_dir="outputs/runs", run_name="baseline_patch_seed42", seed=42, num_workers=4,
                       image_size=224, high_quality_only=False,
                       model_name="dinov3_vits16", head_width=256,
-                      dropout_p=0.3, weights_path=None, aggregation="weighted"):
+                      dropout_p=0.3, weights_path=None, aggregation="weighted",
+                      training_mode="regression", joint_margin=5.0):
     set_seed(seed)
 
     run_dir = os.path.join(out_dir, run_name)
@@ -98,7 +100,9 @@ def train_patch_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber",
         batch_size=batch_size,
         num_workers=num_workers,
         image_size=image_size,
-        high_quality_only=high_quality_only
+        high_quality_only=high_quality_only,
+        training_mode=training_mode,
+        joint_margin=joint_margin
     )
     print(f"Dataloaders initialized. Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
     
@@ -115,7 +119,10 @@ def train_patch_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber",
     optimizer = AdamW(head_params, lr=lr, weight_decay=1e-4)
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
     
-    criterion = get_loss_function(loss_type=loss)
+    if training_mode == 'joint':
+        criterion = JointRankingRegressionLoss(margin=joint_margin)
+    else:
+        criterion = get_loss_function(loss_type=loss)
     mae_criterion = torch.nn.L1Loss()
     
     writer = SummaryWriter(tb_dir)
@@ -135,26 +142,50 @@ def train_patch_model(manifest, epochs=50, batch_size=32, lr=1e-3, loss="huber",
         train_loss_sum = 0.0
         train_mae_sum = 0.0
         
-        for patch_tensors, area_tensors, targets, _ in tqdm(train_loader, desc=f"Epoch {epoch:03d}/{epochs} [Train]"):
-            # Move items to device manually
-            patch_tensors = [p.to(device) for p in patch_tensors]
-            area_tensors = [a.to(device) for a in area_tensors]
-            targets = targets.to(device).unsqueeze(1) # shape [B, 1]
-            
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch:03d}/{epochs} [Train]"):
             optimizer.zero_grad()
             
-            predictions = model(patch_tensors, area_tensors)
-            loss_val = criterion(predictions, targets)
+            if training_mode == 'joint':
+                patch_tensors_A, area_tensors_A, targets_A, _, patch_tensors_B, area_tensors_B, targets_B, _ = batch
+                
+                patch_tensors_A = [p.to(device) for p in patch_tensors_A]
+                area_tensors_A = [a.to(device) for a in area_tensors_A]
+                targets_A = targets_A.to(device).unsqueeze(1)
+                
+                patch_tensors_B = [p.to(device) for p in patch_tensors_B]
+                area_tensors_B = [a.to(device) for a in area_tensors_B]
+                targets_B = targets_B.to(device).unsqueeze(1)
+                
+                predictions_A = model(patch_tensors_A, area_tensors_A)
+                predictions_B = model(patch_tensors_B, area_tensors_B)
+                
+                loss_val = criterion(predictions_A, predictions_B, targets_A, targets_B)
+                
+                loss_val.backward()
+                optimizer.step()
+                
+                batch_size_real = targets_A.size(0) * 2
+                train_loss_sum += loss_val.item() * batch_size_real
+                train_mae_sum += (mae_criterion(predictions_A, targets_A).item() * targets_A.size(0) + 
+                                  mae_criterion(predictions_B, targets_B).item() * targets_B.size(0))
+            else:
+                patch_tensors, area_tensors, targets, _ = batch
+                patch_tensors = [p.to(device) for p in patch_tensors]
+                area_tensors = [a.to(device) for a in area_tensors]
+                targets = targets.to(device).unsqueeze(1)
+                
+                predictions = model(patch_tensors, area_tensors)
+                loss_val = criterion(predictions, targets)
+                
+                loss_val.backward()
+                optimizer.step()
+                
+                batch_size_real = targets.size(0)
+                train_loss_sum += loss_val.item() * batch_size_real
+                train_mae_sum += mae_criterion(predictions, targets).item() * batch_size_real
             
-            loss_val.backward()
-            optimizer.step()
-            
-            batch_size_real = targets.size(0)
-            train_loss_sum += loss_val.item() * batch_size_real
-            train_mae_sum += mae_criterion(predictions, targets).item() * batch_size_real
-            
-        train_loss_epoch = train_loss_sum / len(train_loader.dataset)
-        train_mae_epoch = train_mae_sum / len(train_loader.dataset)
+        train_loss_epoch = train_loss_sum / (len(train_loader.dataset) * (2 if training_mode == 'joint' else 1))
+        train_mae_epoch = train_mae_sum / (len(train_loader.dataset) * (2 if training_mode == 'joint' else 1))
         
         # --- VAL PHASE ---
         model.eval()

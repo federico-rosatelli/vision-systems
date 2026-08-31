@@ -110,6 +110,38 @@ class CSFBPlantPatchDataset(Dataset):
         return patch_tensor, area_tensor, target, plot_group
 
 
+class CSFBPatchPairedDataset(Dataset):
+    """
+    Dataset that returns pairs of patch sets for Ranking-Based Weak Supervision.
+    Only creates pairs where the absolute difference in damage score > margin.
+    """
+    def __init__(self, manifest_path, split='train', transform=None, hsv_bounds=None, min_plant_area=150, high_quality_only=False, margin=5.0):
+        self.base_dataset = CSFBPlantPatchDataset(
+            manifest_path, split=split, transform=transform, 
+            hsv_bounds=hsv_bounds, min_plant_area=min_plant_area, 
+            high_quality_only=high_quality_only
+        )
+        self.margin = margin
+        self.pairs = self._build_pairs()
+        
+    def _build_pairs(self):
+        pairs = []
+        df = self.base_dataset.df
+        scores = df['mean_score'].values
+        for i in range(len(df)):
+            for j in range(i + 1, len(df)):
+                if abs(scores[i] - scores[j]) >= self.margin:
+                    pairs.append((i, j))
+        return pairs
+        
+    def __len__(self):
+        return len(self.pairs)
+        
+    def __getitem__(self, idx):
+        idx_A, idx_B = self.pairs[idx]
+        patch_A, area_A, target_A, group_A = self.base_dataset[idx_A]
+        patch_B, area_B, target_B, group_B = self.base_dataset[idx_B]
+        return patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B
 def patch_collate_fn(batch):
     """
     Custom collate function for CSFBPlantPatchDataset.
@@ -131,7 +163,31 @@ def patch_collate_fn(batch):
     return patch_tensors, area_tensors, targets, plot_groups
 
 
-def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=224, high_quality_only=True):
+def patch_paired_collate_fn(batch):
+    """
+    Custom collate function for CSFBPatchPairedDataset.
+    """
+    patch_tensors_A, area_tensors_A, targets_A, plot_groups_A = [], [], [], []
+    patch_tensors_B, area_tensors_B, targets_B, plot_groups_B = [], [], [], []
+    
+    for (pA, aA, tA, gA, pB, aB, tB, gB) in batch:
+        patch_tensors_A.append(pA)
+        area_tensors_A.append(aA)
+        targets_A.append(tA)
+        plot_groups_A.append(gA)
+        
+        patch_tensors_B.append(pB)
+        area_tensors_B.append(aB)
+        targets_B.append(tB)
+        plot_groups_B.append(gB)
+        
+    targets_A = torch.stack(targets_A)
+    targets_B = torch.stack(targets_B)
+    
+    return patch_tensors_A, area_tensors_A, targets_A, plot_groups_A, patch_tensors_B, area_tensors_B, targets_B, plot_groups_B
+
+
+def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=224, high_quality_only=True, training_mode='regression', joint_margin=5.0):
     """
     Creates and returns train, validation, and test dataloaders for the patch-based model.
     """
@@ -153,9 +209,16 @@ def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_siz
         normalize
     ])
     
-    train_dataset = CSFBPlantPatchDataset(
-        manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only
-    )
+    if training_mode == 'joint':
+        train_dataset = CSFBPatchPairedDataset(
+            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only, margin=joint_margin
+        )
+        train_collate_fn = patch_paired_collate_fn
+    else:
+        train_dataset = CSFBPlantPatchDataset(
+            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only
+        )
+        train_collate_fn = patch_collate_fn
         
     val_dataset = CSFBPlantPatchDataset(
         manifest_path, split='val', transform=eval_transform, high_quality_only=high_quality_only
@@ -167,7 +230,7 @@ def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_siz
     
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, 
-        num_workers=num_workers, drop_last=True, collate_fn=patch_collate_fn
+        num_workers=num_workers, drop_last=True, collate_fn=train_collate_fn
     )
     val_loader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False, 
