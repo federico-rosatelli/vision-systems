@@ -1,5 +1,5 @@
 {
-    "out_manifest": "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage/manifest.csv",
+    "out_manifest": "outputs/tables/baseline_manifest_split.csv",
     
     "epochs": 50,
     "batch_size": 32,
