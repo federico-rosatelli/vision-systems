@@ -30,8 +30,14 @@ def set_seed(seed):
 def evaluate_constants(train_loader, val_loader, device):
     """ Evaluate constant mean and median predictors on validation. """
     train_targets = []
-    for _, _, targets, _ in train_loader:
-        train_targets.extend(targets.numpy())
+    for batch in train_loader:
+        if len(batch) == 8:
+            _, _, targets_A, _, _, _, targets_B, _ = batch
+            train_targets.extend(targets_A.numpy())
+            train_targets.extend(targets_B.numpy())
+        else:
+            _, _, targets, _ = batch
+            train_targets.extend(targets.numpy())
         
     val_targets = []
     for _, _, targets, _ in val_loader:
