@@ -29,22 +29,15 @@ def set_seed(seed):
 
 def evaluate_constants(train_loader, val_loader, device):
     """ Evaluate constant mean and median predictors on validation. """
-    train_targets = []
-    for batch in train_loader:
-        if len(batch) == 8:
-            _, _, targets_A, _, _, _, targets_B, _ = batch
-            train_targets.extend(targets_A.numpy())
-            train_targets.extend(targets_B.numpy())
-        else:
-            _, _, targets, _ = batch
-            train_targets.extend(targets.numpy())
+    if hasattr(train_loader.dataset, 'base_dataset'):
+        train_targets = train_loader.dataset.base_dataset.df['mean_score'].values
+    else:
+        train_targets = train_loader.dataset.df['mean_score'].values
         
-    val_targets = []
-    for _, _, targets, _ in val_loader:
-        val_targets.extend(targets.numpy())
-        
-    train_targets = np.array(train_targets)
-    val_targets = np.array(val_targets)
+    if hasattr(val_loader.dataset, 'base_dataset'):
+        val_targets = val_loader.dataset.base_dataset.df['mean_score'].values
+    else:
+        val_targets = val_loader.dataset.df['mean_score'].values
     
     train_mean = np.mean(train_targets)
     train_median = np.median(train_targets)
