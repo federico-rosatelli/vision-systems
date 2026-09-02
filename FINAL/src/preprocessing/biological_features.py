@@ -182,7 +182,7 @@ if __name__ == "__main__":
             continue
             
         frame = detect_frame(bgr)
-        mask, regions = extract_plant_regions(frame, config.get("hsv_bounds"))
+        mask, regions = extract_plant_regions(frame)
         
         image_metrics = {
             'image_id': img_id,
