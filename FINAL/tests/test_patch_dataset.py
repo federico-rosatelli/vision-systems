@@ -119,7 +119,8 @@ def test_paired_dataset_and_collate_fn(dummy_manifest):
     # The difference is 12.5, which is > 10, so they should form 1 pair.
     dataset = CSFBPatchPairedDataset(manifest_path, min_plant_area=100, margin=10.0)
     
-    assert len(dataset) == 1
+    # Dataset length is now equal to base dataset length
+    assert len(dataset) == 2
     
     patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B = dataset[0]
     

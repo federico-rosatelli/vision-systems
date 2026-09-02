@@ -78,25 +78,33 @@ class CSFBPairedDataset(Dataset):
         self.base_dataset = CSFBDataset(manifest_path, split=split, transform=transform, high_quality_only=high_quality_only)
         self.transform = transform
         self.margin = margin
+        self.partners = self._build_valid_partners()
         
-        self.pairs = self._build_pairs()
-        
-    def _build_pairs(self):
-        pairs = []
+    def _build_valid_partners(self):
+        import random
+        partners = {}
         df = self.base_dataset.df
         scores = df['mean_score'].values
-        # Simple N^2 pairing for small datasets. For larger datasets, this would need random sampling.
         for i in range(len(df)):
-            for j in range(i + 1, len(df)):
-                if abs(scores[i] - scores[j]) >= self.margin:
-                    pairs.append((i, j))
-        return pairs
+            valid = []
+            for j in range(len(df)):
+                if i != j and abs(scores[i] - scores[j]) >= self.margin:
+                    valid.append(j)
+            partners[i] = valid
+        return partners
         
     def __len__(self):
-        return len(self.pairs)
+        return len(self.base_dataset)
         
     def __getitem__(self, idx):
-        idx_A, idx_B = self.pairs[idx]
+        import random
+        idx_A = idx
+        valid_partners = self.partners[idx_A]
+        if not valid_partners:
+            idx_B = (idx_A + 1) % len(self.base_dataset)
+        else:
+            idx_B = random.choice(valid_partners)
+            
         img_A, target_A, group_A = self.base_dataset[idx_A]
         img_B, target_B, group_B = self.base_dataset[idx_B]
         return img_A, img_B, target_A, target_B, group_A, group_B

@@ -122,23 +122,34 @@ class CSFBPatchPairedDataset(Dataset):
             high_quality_only=high_quality_only
         )
         self.margin = margin
-        self.pairs = self._build_pairs()
+        self.partners = self._build_valid_partners()
         
-    def _build_pairs(self):
-        pairs = []
+    def _build_valid_partners(self):
+        import random
+        partners = {}
         df = self.base_dataset.df
         scores = df['mean_score'].values
         for i in range(len(df)):
-            for j in range(i + 1, len(df)):
-                if abs(scores[i] - scores[j]) >= self.margin:
-                    pairs.append((i, j))
-        return pairs
+            valid = []
+            for j in range(len(df)):
+                if i != j and abs(scores[i] - scores[j]) >= self.margin:
+                    valid.append(j)
+            partners[i] = valid
+        return partners
         
     def __len__(self):
-        return len(self.pairs)
+        return len(self.base_dataset)
         
     def __getitem__(self, idx):
-        idx_A, idx_B = self.pairs[idx]
+        import random
+        idx_A = idx
+        valid_partners = self.partners[idx_A]
+        if not valid_partners:
+            # Fallback if no valid partner exists with the required margin
+            idx_B = (idx_A + 1) % len(self.base_dataset)
+        else:
+            idx_B = random.choice(valid_partners)
+            
         patch_A, area_A, target_A, group_A = self.base_dataset[idx_A]
         patch_B, area_B, target_B, group_B = self.base_dataset[idx_B]
         return patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B
