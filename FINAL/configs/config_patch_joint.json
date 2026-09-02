@@ -7,7 +7,7 @@
     "loss": "huber",
     "patience": 10,
     "out_dir": "outputs/runs",
-    "run_name": "patch_joint_seed42",
+    "run_name": "patch_joint_sampled_seed42",
     "seed": 42,
     "num_workers": 4,
     "image_size": 224,
