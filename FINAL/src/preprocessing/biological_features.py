@@ -9,7 +9,7 @@ import pandas as pd
 
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from src.preprocessing.frame_crop import detect_frame
+from src.preprocessing.frame_crop import detect_frame, crop_frame_interior
 from src.preprocessing.plant_regions import extract_plant_regions
 
 def get_green_mask(patch_bgr, hsv_bounds=None):
@@ -181,7 +181,11 @@ if __name__ == "__main__":
         if bgr is None:
             continue
             
-        frame = detect_frame(bgr)
+        detection = detect_frame(bgr)
+        if detection.status != "detected":
+            continue
+        frame = crop_frame_interior(bgr, detection.corners)
+        
         mask, regions = extract_plant_regions(frame)
         
         image_metrics = {
