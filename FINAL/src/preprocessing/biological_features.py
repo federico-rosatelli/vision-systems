@@ -184,7 +184,7 @@ if __name__ == "__main__":
         detection = detect_frame(bgr)
         if detection.status != "detected":
             continue
-        frame = crop_frame_interior(bgr, detection.corners)
+        frame, _ = crop_frame_interior(bgr, detection.corners)
         
         mask, regions = extract_plant_regions(frame)
         
