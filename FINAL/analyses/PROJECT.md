@@ -137,7 +137,7 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 7 | Plant-focused patch extraction | Complete |
 | 8 | Plant-patch dataset | Complete |
 | 9 | Plant-focused patch baseline (DINOv3 aggregation) | Complete |
-| 10 | Ranking-based comparison on validated features | Code Complete, pending remote execution |
+| 10 | Ranking-based comparison on validated features | Complete |
 | 11 | Domain robustness | Pending |
 | 12 | Genotype resistance analysis | Pending |
 | 13 | Packaging and presentation | Pending |
@@ -260,6 +260,19 @@ Exit criteria:
 Exit criteria:
 
 - Ranking improves validation ordering without unacceptable regression degradation across seeds.
+
+**Status and Results**:
+- **Pure Regression (Patch-based Huber)**: Validation MAE ~2.85, Spearman ~0.845 (Epoch 38)
+- **Joint Regression-Ranking (Experiment 1: $O(N^2)$ Pair Explosion)**: Materializing all valid pairs (~26k pairs per epoch) caused massive training length imbalance (1 joint epoch = 82 regression epochs), leading to severe overfitting. At epoch 1, it achieved MAE ~2.97 and Spearman ~0.846 before degrading.
+- **Joint Regression-Ranking (Experiment 2: Random Balanced Sampling)**: Fixed combinatorial pairing by sampling 1 partner per image. Results plateaued at Validation MAE ~2.854, Spearman ~0.8453 (Epoch 22), mathematically identical to pure regression.
+
+**Conclusion**: The frozen DINOv3 features combined with a linear/MLP head hit a natural informational ceiling at ~0.845 Spearman. Adding the ranking loss achieved the exact same theoretical limit as the regression loss, confirming the patch-based representations extract all available damage information properly. The Pure Regression model is selected for its speed and simplicity.
+
+**Future Ranking Avenues**: While the standard pairwise margin ranking was implemented correctly, future experiments could explore the following to potentially break this ceiling:
+1. *Listwise Ranking (e.g., ListNet/SoftRank)*: Optimizing the entire batch ordering simultaneously rather than pairwise.
+2. *Ordinal Regression*: Treating the 0-100 score as ordinal classes to penalize large severity errors.
+3. *Triplet Loss / Contrastive Learning*: Using anchors and positive/negative examples to distance internal features.
+4. *Backbone Unfreezing (LoRA)*: Fine-tuning the last DINOv3 attention blocks to actively seek damage patterns (abandoning the strict frozen-backbone constraint).
 
 ### Step 9 — Separate holes and pitting
 

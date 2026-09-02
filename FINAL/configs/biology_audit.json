@@ -1,0 +1,12 @@
+{
+    "manifest": "outputs/frame_audit/frame_audit.csv",
+    "output_dir": "outputs/biology_audit",
+    "hsv_bounds": {
+        "lower": [35, 40, 40],
+        "upper": [85, 255, 255]
+    },
+    "hsv_pitting_bounds": {
+        "lower": [10, 40, 40],
+        "upper": [35, 255, 255]
+    }
+}
