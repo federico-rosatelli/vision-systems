@@ -24,109 +24,66 @@ def get_green_mask(patch_bgr, hsv_bounds=None):
     upper = np.array(hsv_bounds['upper'], dtype=np.uint8)
     return cv2.inRange(hsv, lower, upper)
 
-def extract_pitting(patch_bgr, hsv_pitting_bounds=None):
-    """
-    Detect yellow/brown pitting.
-    Typical yellow/brown in HSV: H from 10 to 35, S > 40, V > 40.
-    """
-    if hsv_pitting_bounds is None:
-        hsv_pitting_bounds = {
-            'lower': [10, 40, 40],
-            'upper': [35, 255, 255]
-        }
-    hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
-    lower = np.array(hsv_pitting_bounds['lower'], dtype=np.uint8)
-    upper = np.array(hsv_pitting_bounds['upper'], dtype=np.uint8)
-    
-    pitting_mask = cv2.inRange(hsv, lower, upper)
-    
-    # Clean up with morphology
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    pitting_mask = cv2.morphologyEx(pitting_mask, cv2.MORPH_OPEN, kernel)
-    
-    # Find pitting blobs
-    contours, _ = cv2.findContours(pitting_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    pitting_area = 0
-    pitting_count = 0
-    valid_contours = []
-    
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area >= 5:  # Minimum 5 pixels to be considered pitting
-            pitting_area += area
-            pitting_count += 1
-            valid_contours.append(cnt)
-            
-    return pitting_area, pitting_count, valid_contours
-
-def extract_holes(patch_bgr, green_mask):
-    """
-    Detect internal shot-holes inside the leaf.
-    Uses RETR_CCOMP to find internal contours (holes) within the green mask.
-    """
-    # Find contours with 2-level hierarchy
-    contours, hierarchy = cv2.findContours(green_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    
-    hole_area = 0
-    hole_count = 0
-    valid_hole_contours = []
-    
-    if hierarchy is not None:
-        hierarchy = hierarchy[0]
-        for i, cnt in enumerate(contours):
-            # hierarchy[i] = [Next, Previous, First_Child, Parent]
-            # If Parent != -1, it means this is an internal contour (a hole)
-            if hierarchy[i][3] != -1:
-                area = cv2.contourArea(cnt)
-                if area >= 5: # Minimum 5 pixels to be considered a shot-hole
-                    hole_area += area
-                    hole_count += 1
-                    valid_hole_contours.append(cnt)
-                    
-    return hole_area, hole_count, valid_hole_contours
-
 def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None):
     """
-    Aggregates all biological features for a single plant patch.
+    Aggregates all biological features for a single plant patch using a topological approach.
+    It fills the external contours of the green leaf to find the solid leaf area,
+    and isolates internal non-green blobs as damage. Dark blobs are holes, bright blobs are pitting.
     """
     green_mask = get_green_mask(patch_bgr, hsv_bounds)
     
-    # We need the actual pitting mask to avoid double-counting pitting as shot-holes.
-    if hsv_pitting_bounds is None:
-        hsv_pitting_bounds = {
-            'lower': [10, 40, 40],
-            'upper': [35, 255, 255]
-        }
-    hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
-    lower = np.array(hsv_pitting_bounds['lower'], dtype=np.uint8)
-    upper = np.array(hsv_pitting_bounds['upper'], dtype=np.uint8)
-    pitting_mask = cv2.inRange(hsv, lower, upper)
+    # 1. Create filled leaf mask
+    contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    filled_leaf_mask = np.zeros_like(green_mask)
+    cv2.drawContours(filled_leaf_mask, contours, -1, 255, -1)
     
-    # Clean pitting mask
+    # 2. Isolate internal damage (holes and pitting)
+    damage_mask = cv2.bitwise_and(filled_leaf_mask, cv2.bitwise_not(green_mask))
+    
+    # Clean up small noise in damage mask
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    pitting_mask = cv2.morphologyEx(pitting_mask, cv2.MORPH_OPEN, kernel)
+    damage_mask = cv2.morphologyEx(damage_mask, cv2.MORPH_OPEN, kernel)
     
-    # Calculate pitting area and count
-    contours, _ = cv2.findContours(pitting_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # 3. Find damage blobs
+    damage_contours, _ = cv2.findContours(damage_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
+    
     pitting_area = 0
     pitting_count = 0
     pitting_cnts = []
-    for cnt in contours:
+    
+    hole_area = 0
+    hole_count = 0
+    hole_cnts = []
+    
+    for cnt in damage_contours:
         area = cv2.contourArea(cnt)
-        if area >= 5:
+        if area < 5:
+            continue
+            
+        # Create a mask for this specific blob to analyze its color
+        blob_mask = np.zeros_like(green_mask)
+        cv2.drawContours(blob_mask, [cnt], -1, 255, -1)
+        
+        # Calculate mean Value (brightness) of the blob
+        mean_v = cv2.mean(hsv[:, :, 2], mask=blob_mask)[0]
+        
+        # If the blob is bright, it's necrosis/pitting. If it's dark (shadow/soil), it's a hole.
+        # Soil and shadows are typically V < 40. Necrotic tissue is usually brighter.
+        if mean_v >= 40:
             pitting_area += area
             pitting_count += 1
             pitting_cnts.append(cnt)
+        else:
+            hole_area += area
+            hole_count += 1
+            hole_cnts.append(cnt)
             
-    # For hole extraction, treat pitting as "leaf tissue" so it doesn't form an internal hole contour
-    solid_leaf_mask = cv2.bitwise_or(green_mask, pitting_mask)
-    hole_area, hole_count, hole_cnts = extract_holes(patch_bgr, solid_leaf_mask)
-    
-    plant_area = cv2.countNonZero(solid_leaf_mask)
+    plant_area = cv2.countNonZero(filled_leaf_mask)
     if plant_area == 0:
         plant_area = 1 # Prevent division by zero
-    
+        
     total_affected_area = pitting_area + hole_area
     pitting_to_hole_ratio = pitting_area / hole_area if hole_area > 0 else float('inf')
     if hole_area == 0 and pitting_area == 0:
@@ -140,16 +97,20 @@ def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None):
         'hole_count': int(hole_count),
         'total_affected_area': float(total_affected_area),
         'pitting_to_hole_ratio': float(pitting_to_hole_ratio),
-        'damage_percentage': float(total_affected_area / (plant_area + hole_area) * 100)
+        'damage_percentage': float(total_affected_area / plant_area * 100)
     }
     
-    return metrics, pitting_cnts, hole_cnts
+    return metrics, pitting_cnts, hole_cnts, filled_leaf_mask
 
-def draw_biology_overlay(patch_bgr, pitting_cnts, hole_cnts):
+def draw_biology_overlay(patch_bgr, pitting_cnts, hole_cnts, solid_leaf_mask=None):
     """
     Draw red outlines around pitting and blue outlines around holes.
+    Optionally masks out the background (soil) to black using solid_leaf_mask.
     """
     overlay = patch_bgr.copy()
+    
+    if solid_leaf_mask is not None:
+        overlay = cv2.bitwise_and(overlay, overlay, mask=solid_leaf_mask)
     # Draw pitting (Red)
     cv2.drawContours(overlay, pitting_cnts, -1, (0, 0, 255), 1)
     # Draw holes (Blue)
@@ -201,7 +162,7 @@ if __name__ == "__main__":
         for r_idx, region in enumerate(regions):
             x, y, w, h = region.patch_box
             patch = frame[y:y+h, x:x+w]
-            metrics, p_cnts, h_cnts = analyze_plant_biology(patch, config.get("hsv_bounds"), config.get("hsv_pitting_bounds"))
+            metrics, p_cnts, h_cnts, solid_mask = analyze_plant_biology(patch, config.get("hsv_bounds"), config.get("hsv_pitting_bounds"))
             
             image_metrics['total_plant_area'] += metrics['plant_area']
             image_metrics['total_pitting_area'] += metrics['pitting_area']
@@ -209,7 +170,7 @@ if __name__ == "__main__":
             image_metrics['total_pitting_count'] += metrics['pitting_count']
             image_metrics['total_hole_count'] += metrics['hole_count']
             
-            overlay = draw_biology_overlay(patch, p_cnts, h_cnts)
+            overlay = draw_biology_overlay(patch, p_cnts, h_cnts, solid_mask)
             out_patch_path = overlays_dir / f"{img_id}_plant{r_idx}.jpg"
             cv2.imwrite(str(out_patch_path), overlay)
             
