@@ -199,7 +199,8 @@ if __name__ == "__main__":
         }
         
         for r_idx, region in enumerate(regions):
-            patch = region['patch_image']
+            x, y, w, h = region.patch_box
+            patch = frame[y:y+h, x:x+w]
             metrics, p_cnts, h_cnts = analyze_plant_biology(patch, config.get("hsv_bounds"), config.get("hsv_pitting_bounds"))
             
             image_metrics['total_plant_area'] += metrics['plant_area']
