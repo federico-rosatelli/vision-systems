@@ -75,13 +75,16 @@ class DINOv3MILRegressor(nn.Module):
         aggregation="abmil",
         local_weights_path=None,
         embed_dim=384,
-        attn_L=128
+        attn_L=128,
+        image_size=224,
+        **kwargs
     ):
         super().__init__()
         self.aggregation = aggregation
         self.embed_dim = embed_dim
         self.local_weights_path = local_weights_path
         self.model_name = model_name
+        self.image_size = image_size
 
         # Load DINOv3 backbone if needed for image patch extraction
         self.backbone = None
@@ -139,8 +142,11 @@ class DINOv3MILRegressor(nn.Module):
             attn_weights = weights.unsqueeze(1)
         else:
             agg_feat = features.mean(dim=0)
-            N = features.shape[0]
-            attn_weights = torch.ones(N, 1, device=features.device) / max(1, N)
+            N = features.shape[0] if isinstance(features, torch.Tensor) else 1
+            if not isinstance(N, int):
+                N = 1
+            dev = features.device if (hasattr(features, 'device') and isinstance(features.device, torch.device)) else 'cpu'
+            attn_weights = torch.ones(N, 1, device=dev) / max(1, N)
 
         pred_score = self.head(agg_feat.unsqueeze(0)) * 100.0
         return pred_score, attn_weights
