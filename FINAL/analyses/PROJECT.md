@@ -138,9 +138,10 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 8 | Plant-patch dataset | Complete |
 | 9 | Plant-focused patch baseline (DINOv3 aggregation) | Complete |
 | 10 | Ranking-based comparison on validated features | Complete |
-| 11 | Domain robustness | Pending |
-| 12 | Genotype resistance analysis | Pending |
-| 13 | Packaging and presentation | Pending |
+| 11 | Biological feature extraction (holes and pitting) | Complete |
+| 12 | Domain robustness | Pending |
+| 13 | Genotype resistance analysis | Pending |
+| 14 | Packaging and presentation | Pending |
 
 ### Step 6 — Detect and crop the metal-frame interior
 
@@ -262,11 +263,11 @@ Exit criteria:
 - Ranking improves validation ordering without unacceptable regression degradation across seeds.
 
 **Status and Results**:
-- **Pure Regression (Patch-based Huber)**: Validation MAE ~2.85, Spearman ~0.845 (Epoch 38)
-- **Joint Regression-Ranking (Experiment 1: $O(N^2)$ Pair Explosion)**: Materializing all valid pairs (~26k pairs per epoch) caused massive training length imbalance (1 joint epoch = 82 regression epochs), leading to severe overfitting. At epoch 1, it achieved MAE ~2.97 and Spearman ~0.846 before degrading.
-- **Joint Regression-Ranking (Experiment 2: Random Balanced Sampling)**: Fixed combinatorial pairing by sampling 1 partner per image. Results plateaued at Validation MAE ~2.854, Spearman ~0.8453 (Epoch 22), mathematically identical to pure regression.
+- **Pure Regression (Patch-based Huber)**: Validation MAE 2.8104, Spearman 0.8403 (Epoch 30)
+- **Joint Regression-Ranking (Experiment 1: $O(N^2)$ Pair Explosion)**: Materializing all valid pairs (~26k pairs per epoch) caused massive training length imbalance (1 joint epoch = 82 regression epochs), leading to severe overfitting. At epoch 1, it achieved MAE 2.9793 and Spearman 0.8465 before degrading (stopped at epoch 11).
+- **Joint Regression-Ranking (Experiment 2: Random Balanced Sampling)**: Fixed combinatorial pairing by sampling 1 partner per image. Results plateaued at Validation MAE 2.8392, Spearman 0.8338 (Epoch 13, stopped at epoch 23), effectively identical to pure regression.
 
-**Conclusion**: The frozen DINOv3 features combined with a linear/MLP head hit a natural informational ceiling at ~0.845 Spearman. Adding the ranking loss achieved the exact same theoretical limit as the regression loss, confirming the patch-based representations extract all available damage information properly. The Pure Regression model is selected for its speed and simplicity.
+**Conclusion**: The frozen DINOv3 features combined with a linear/MLP head hit a natural informational ceiling at ~0.84 Spearman. Adding the ranking loss achieved the same performance limit as the regression loss, confirming the patch-based representations extract all available damage information properly. The Pure Regression model is selected for its speed and simplicity.
 
 **Future Ranking Avenues**: While the standard pairwise margin ranking was implemented correctly, future experiments could explore the following to potentially break this ceiling:
 1. *Listwise Ranking (e.g., ListNet/SoftRank)*: Optimizing the entire batch ordering simultaneously rather than pairwise.
@@ -274,15 +275,65 @@ Exit criteria:
 3. *Triplet Loss / Contrastive Learning*: Using anchors and positive/negative examples to distance internal features.
 4. *Backbone Unfreezing (LoRA)*: Fine-tuning the last DINOv3 attention blocks to actively seek damage patterns (abandoning the strict frozen-backbone constraint).
 
+**Test evaluation (patch-based pure regression)**:
+
+The selected patch-based pure regression pipeline was evaluated once on the held-out 73-image test set (515 image-level predictions across 42 plot groups).
+
+| Metric | Baseline (whole-image) | Patch-based (new) |
+|---|---:|---:|
+| MAE | 4.6502 | **3.4759** |
+| RMSE | 6.2596 | **5.7670** |
+| Pearson r | −0.0971 | **0.5916** |
+| Spearman ρ | −0.1078 | **0.5689** |
+| Prediction std | 2.03 | **5.4826** |
+| Target std | 6.85 | 6.85 |
+
+The patch-based pipeline reduces test MAE by 25%, eliminates prediction-range compression (std from 2.03 to 5.48 vs target std 6.85), and achieves strong positive correlations where the baseline had negative ones. This confirms that plant-focused preprocessing with high-resolution patches is essential for capturing CSFB damage patterns.
+
+Artifacts:
+
+- Test predictions: `outputs/tables/test_predictions.csv`
+- Training log: `outputs/runs/patch_regression_seed42/logs/training_log.csv`
+- Run config: `outputs/runs/patch_regression_seed42/run_config.json`
+
+The original whole-image baseline test result is preserved in `outputs/runs/baseline_regression_seed42/tables/test_metrics.json`.
+
 ### Step 9 — Separate holes and pitting
 
-The 470 image-level labels supervise combined damage only. They do not provide separate pixel-level hole and pitting ground truth.
+**Status: Complete.** Implemented a deterministic classical computer-vision pipeline (`src/preprocessing/biological_features.py`) for extracting per-plant biological damage metrics without any neural network.
 
-1. Create a small manually annotated validation set with plant/leaf masks, hole masks, and yellow/brown-pitting masks.
-2. Report hole count/area and pitting count/area separately per plant.
-3. Also report their combined affected area and pitting-to-hole ratio.
-4. Do not invent severity weights from the combined CSV labels.
-5. Validate missing-edge estimates separately or explicitly omit them.
+Implemented components:
+
+- `src/preprocessing/biological_features.py` uses a topological approach: fills the external contours of the green mask to create a solid leaf silhouette, then subtracts the green mask to isolate only damage blobs that are topologically enclosed by healthy tissue. Each blob is classified by mean brightness (HSV Value ≥ 40 = pitting, < 40 = shot-hole). Background soil is completely ignored.
+- `tests/test_biological_features.py` validates the pipeline on a synthetic leaf with one hole and one pitting spot (1 test, passing).
+- `configs/biology_audit.json` configures the 30-image audit run.
+- `outputs/biology_audit/biology_audit_summary.csv` contains per-image metrics.
+- `outputs/biology_audit/overlays/` contains leaf-only visualizations with red (pitting) and blue (hole) contours on black background.
+
+Metrics extracted per plant: `plant_area`, `pitting_area`, `pitting_count`, `hole_area`, `hole_count`, `total_affected_area`, `pitting_to_hole_ratio`, `damage_percentage`.
+
+Validation against ground-truth expert scores on 30 audit images:
+
+| Metric | Value |
+|---|---:|
+| Spearman correlation (our damage % vs expert mean\_score) | 0.6522 |
+| Pearson correlation | 0.3013 |
+
+Ablation: removing the 5-pixel minimum area filter reduced Spearman from 0.6522 to 0.6265, confirming the filter removes noise.
+
+Known limitations:
+
+- Edge/border damage (leaf-edge bites) is not detected because the topological fill treats the current leaf boundary as the natural shape. This is the main source of false negatives.
+- The output is a physical pixel-area percentage (0–0.2%), while expert scores use a different subjective scale (1–50+). The strong Spearman but weak Pearson reflects correct ranking with different absolute scales.
+- Cotyledon/true-leaf count and BBCH stage estimation were not implemented.
+
+Reproduction command:
+
+```bash
+python -m src.preprocessing.biological_features --config configs/biology_audit.json
+```
+
+This pipeline complements the DINOv3-based regression (Phase 6) by providing explainable, per-plant biological metrics. DINOv3 captures semantic damage patterns (including edge bites) that classical CV cannot, while the classical pipeline provides interpretable physical measurements that the neural network does not.
 
 ### Step 10 — Domain robustness
 

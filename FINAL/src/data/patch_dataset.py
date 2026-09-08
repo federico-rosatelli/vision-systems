@@ -79,7 +79,6 @@ class CSFBPlantPatchDataset(Dataset):
             areas.append(float(region.green_area))
         
         patch_tensors = []
-        # If no plants detected, return a dummy patch to avoid crashing
         if not patches_bgr:
             dummy_image = Image.new('RGB', (224, 224), (0, 0, 0))
             if self.transform:
@@ -90,7 +89,6 @@ class CSFBPlantPatchDataset(Dataset):
             areas = [0.0]
         else:
             for patch_bgr in patches_bgr:
-                # Convert BGR to RGB for PIL/Torch
                 patch_rgb = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2RGB)
                 patch_pil = Image.fromarray(patch_rgb)
                 
@@ -99,7 +97,6 @@ class CSFBPlantPatchDataset(Dataset):
                 else:
                     patch_tensors.append(transforms.ToTensor()(patch_pil))
                     
-        # Stack into [N, C, H, W]
         patch_tensor = torch.stack(patch_tensors)
         area_tensor = torch.tensor(areas, dtype=torch.float32)
         
@@ -125,7 +122,6 @@ class CSFBPatchPairedDataset(Dataset):
         self.partners = self._build_valid_partners()
         
     def _build_valid_partners(self):
-        import random
         partners = {}
         df = self.base_dataset.df
         scores = df['mean_score'].values
@@ -145,7 +141,6 @@ class CSFBPatchPairedDataset(Dataset):
         idx_A = idx
         valid_partners = self.partners[idx_A]
         if not valid_partners:
-            # Fallback if no valid partner exists with the required margin
             idx_B = (idx_A + 1) % len(self.base_dataset)
         else:
             idx_B = random.choice(valid_partners)
@@ -153,9 +148,82 @@ class CSFBPatchPairedDataset(Dataset):
         patch_A, area_A, target_A, group_A = self.base_dataset[idx_A]
         patch_B, area_B, target_B, group_B = self.base_dataset[idx_B]
         return patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B
+
+
+class CSFBCachedBagDataset(Dataset):
+    """
+    PyTorch Dataset that loads pre-computed patch embedding bags from disk cache.
+    """
+    def __init__(self, cache_path, split=None):
+        if not os.path.exists(cache_path):
+            raise FileNotFoundError(f"Cached bag file not found: {cache_path}")
+        data = torch.load(cache_path, map_location='cpu')
+        all_bags = data['bags']
+        if split:
+            self.bags = [b for b in all_bags if b.get('split') == split]
+        else:
+            self.bags = all_bags
+        
+        self.df = pd.DataFrame([{
+            'filename': b['filename'],
+            'mean_score': b['target'],
+            'plot_group': b['plot_group'],
+            'split': b.get('split', 'unknown')
+        } for b in self.bags])
+
+    def __len__(self):
+        return len(self.bags)
+
+    def __getitem__(self, idx):
+        bag = self.bags[idx]
+        features = bag['features'] # [N, D] tensor
+        areas = bag['areas']       # [N] tensor
+        target = torch.tensor(bag['target'], dtype=torch.float32)
+        plot_group = str(bag['plot_group'])
+        return features, areas, target, plot_group
+
+
+class CSFBCachedPairedBagDataset(Dataset):
+    """
+    PyTorch Dataset for Paired Ranking using pre-computed patch embedding bags.
+    """
+    def __init__(self, cache_path, split='train', margin=5.0):
+        self.base_dataset = CSFBCachedBagDataset(cache_path, split=split)
+        self.margin = margin
+        self.partners = self._build_valid_partners()
+        
+    def _build_valid_partners(self):
+        partners = {}
+        df = self.base_dataset.df
+        scores = df['mean_score'].values
+        for i in range(len(df)):
+            valid = []
+            for j in range(len(df)):
+                if i != j and abs(scores[i] - scores[j]) >= self.margin:
+                    valid.append(j)
+            partners[i] = valid
+        return partners
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        import random
+        idx_A = idx
+        valid_partners = self.partners[idx_A]
+        if not valid_partners:
+            idx_B = (idx_A + 1) % len(self.base_dataset)
+        else:
+            idx_B = random.choice(valid_partners)
+            
+        feat_A, area_A, target_A, group_A = self.base_dataset[idx_A]
+        feat_B, area_B, target_B, group_B = self.base_dataset[idx_B]
+        return feat_A, area_A, target_A, group_A, feat_B, area_B, target_B, group_B
+
+
 def patch_collate_fn(batch):
     """
-    Custom collate function for CSFBPlantPatchDataset.
+    Custom collate function for CSFBPlantPatchDataset / CSFBCachedBagDataset.
     Since each image has a variable number of patches `N`, we return them as lists.
     """
     patch_tensors = []
@@ -176,7 +244,7 @@ def patch_collate_fn(batch):
 
 def patch_paired_collate_fn(batch):
     """
-    Custom collate function for CSFBPatchPairedDataset.
+    Custom collate function for CSFBPatchPairedDataset / CSFBCachedPairedBagDataset.
     """
     patch_tensors_A, area_tensors_A, targets_A, plot_groups_A = [], [], [], []
     patch_tensors_B, area_tensors_B, targets_B, plot_groups_B = [], [], [], []
@@ -198,58 +266,73 @@ def patch_paired_collate_fn(batch):
     return patch_tensors_A, area_tensors_A, targets_A, plot_groups_A, patch_tensors_B, area_tensors_B, targets_B, plot_groups_B
 
 
-def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=224, high_quality_only=True, training_mode='regression', joint_margin=5.0):
+def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_size=224, high_quality_only=True, training_mode='regression', joint_margin=5.0, cache_path=None):
     """
-    Creates and returns train, validation, and test dataloaders for the patch-based model.
+    Creates and returns train, validation, and test dataloaders for the patch-based / MIL model.
+    If cache_path is provided and exists, uses pre-extracted patch feature bags for 100x speedup.
     """
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-                                     
-    train_transform = transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),
-        transforms.ToTensor(),
-        normalize
-    ])
-    
-    eval_transform = transforms.Compose([
-        transforms.Resize((image_size, image_size)),
-        transforms.ToTensor(),
-        normalize
-    ])
-    
-    if training_mode == 'joint':
-        train_dataset = CSFBPatchPairedDataset(
-            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only, margin=joint_margin
-        )
-        train_collate_fn = patch_paired_collate_fn
+    if cache_path and os.path.exists(cache_path):
+        print(f"Loading pre-extracted MIL patch feature bags from {cache_path}...")
+        if training_mode == 'joint':
+            train_dataset = CSFBCachedPairedBagDataset(cache_path, split='train', margin=joint_margin)
+            train_collate_fn = patch_paired_collate_fn
+        else:
+            train_dataset = CSFBCachedBagDataset(cache_path, split='train')
+            train_collate_fn = patch_collate_fn
+
+        val_dataset = CSFBCachedBagDataset(cache_path, split='val')
+        test_dataset = CSFBCachedBagDataset(cache_path, split='test')
     else:
-        train_dataset = CSFBPlantPatchDataset(
-            manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only
-        )
-        train_collate_fn = patch_collate_fn
+        if cache_path:
+            print(f"Notice: Cache path {cache_path} not found. Falling back to on-the-fly extraction.")
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                                         
+        train_transform = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),
+            transforms.ToTensor(),
+            normalize
+        ])
         
-    val_dataset = CSFBPlantPatchDataset(
-        manifest_path, split='val', transform=eval_transform, high_quality_only=high_quality_only
-    )
-    
-    test_dataset = CSFBPlantPatchDataset(
-        manifest_path, split='test', transform=eval_transform, high_quality_only=high_quality_only
-    )
+        eval_transform = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
+            transforms.ToTensor(),
+            normalize
+        ])
+        
+        if training_mode == 'joint':
+            train_dataset = CSFBPatchPairedDataset(
+                manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only, margin=joint_margin
+            )
+            train_collate_fn = patch_paired_collate_fn
+        else:
+            train_dataset = CSFBPlantPatchDataset(
+                manifest_path, split='train', transform=train_transform, high_quality_only=high_quality_only
+            )
+            train_collate_fn = patch_collate_fn
+            
+        val_dataset = CSFBPlantPatchDataset(
+            manifest_path, split='val', transform=eval_transform, high_quality_only=high_quality_only
+        )
+        
+        test_dataset = CSFBPlantPatchDataset(
+            manifest_path, split='test', transform=eval_transform, high_quality_only=high_quality_only
+        )
     
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, 
-        num_workers=num_workers, drop_last=True, collate_fn=train_collate_fn
+        num_workers=num_workers if cache_path is None else 0, drop_last=True, collate_fn=train_collate_fn
     )
     val_loader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False, 
-        num_workers=num_workers, collate_fn=patch_collate_fn
+        num_workers=num_workers if cache_path is None else 0, collate_fn=patch_collate_fn
     )
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=False, 
-        num_workers=num_workers, collate_fn=patch_collate_fn
+        num_workers=num_workers if cache_path is None else 0, collate_fn=patch_collate_fn
     )
     
     return train_loader, val_loader, test_loader
