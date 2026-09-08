@@ -157,7 +157,10 @@ class CSFBCachedBagDataset(Dataset):
     def __init__(self, cache_path, split=None):
         if not os.path.exists(cache_path):
             raise FileNotFoundError(f"Cached bag file not found: {cache_path}")
-        data = torch.load(cache_path, map_location='cpu')
+        try:
+            data = torch.load(cache_path, map_location='cpu', weights_only=False)
+        except TypeError:
+            data = torch.load(cache_path, map_location='cpu')
         all_bags = data['bags']
         if split:
             self.bags = [b for b in all_bags if b.get('split') == split]

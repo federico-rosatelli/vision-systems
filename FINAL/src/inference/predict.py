@@ -22,7 +22,10 @@ def predict_single_image(image_path, model_path, image_size=None):
         
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    checkpoint = torch.load(model_path, map_location=device)
+    try:
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(model_path, map_location=device)
     model_config = checkpoint.get('model_config')
     if not model_config:
         raise ValueError("Checkpoint lacks required model_config metadata")

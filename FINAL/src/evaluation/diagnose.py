@@ -57,7 +57,10 @@ def diagnose(manifest_path, checkpoint_path, output_dir, splits=ALLOWED_SPLITS,
     constants = {"train_mean": train_targets.mean(), "train_median": train_targets.median()}
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
     model = DINOv3Regressor(**checkpoint["model_config"])
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device).eval()

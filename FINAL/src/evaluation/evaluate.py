@@ -33,7 +33,10 @@ def evaluate_model(manifest, model_path, batch_size=32, out_dir=None, num_worker
     
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found: {model_path}")
-    checkpoint = torch.load(model_path, map_location=device)
+    try:
+        checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(model_path, map_location=device)
     model_config = checkpoint.get('model_config')
     if not model_config:
         raise ValueError("Checkpoint lacks required model_config metadata; retrain it as a reproducible run")
