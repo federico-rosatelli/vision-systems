@@ -17,42 +17,72 @@ from src.data.patch_dataset import CSFBPlantPatchDataset, patch_collate_fn
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
+def safe_float(val):
+    if val is None:
+        return None
+    s = str(val).strip().upper()
+    if not s or s in ("NA", "NAN", "NONE", "NULL", "N/A"):
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+def find_image_path(folder_path, filename):
+    p = folder_path / filename
+    if p.is_file():
+        return p
+    p = folder_path / folder_path.name / filename
+    if p.is_file():
+        return p
+    filename_lower = filename.lower()
+    for candidate in folder_path.rglob('*'):
+        if candidate.is_file() and candidate.name.lower() == filename_lower:
+            return candidate
+    return None
+
 def build_ood_manifest(raw_dir, folder_name, score_csv_name):
     """
     Builds a temporary manifest DataFrame for an OOD folder.
+    Auto-detects CSV delimiter (';' vs ',') and resolves nested image paths and NA scores safely.
     """
     raw_dir = Path(raw_dir)
     folder_path = raw_dir / folder_name
     score_csv = raw_dir / score_csv_name
     
     if not score_csv.is_file():
-        # Check inside folder_path
         score_csv = folder_path / score_csv_name
         if not score_csv.is_file():
             return None
 
     with open(score_csv, "r", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
+        sample = f.read(2048)
+        first_line = sample.splitlines()[0] if sample else ""
+        sep = ';' if ';' in first_line else ','
+
+    with open(score_csv, "r", encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f, delimiter=sep))
 
     manifest_rows = []
     for r in rows:
         fn = r.get("Filename") or r.get("filename")
         if not fn:
             continue
-        if not fn.endswith(".jpg"):
-            fn += ".jpg"
-        
-        # Look for physical image file
-        img_p = folder_path / fn
-        if not img_p.is_file():
-            img_p = folder_path / folder_name / fn
-        if not img_p.is_file():
+            
+        img_p = find_image_path(folder_path, fn)
+        if img_p is None or not img_p.is_file():
             continue
 
-        score_jlu = float(r.get("Score_JLU", 0.0) or 0.0)
-        score_gau = float(r.get("Score_GAU", 0.0) or 0.0)
-        supplied_mean = float(r.get("mean_score", r.get("Score", 0.0)) or 0.0)
-        mean_score = (score_jlu + score_gau) / 2.0 if (score_jlu and score_gau) else supplied_mean
+        score_jlu = safe_float(r.get("Score_JLU"))
+        score_gau = safe_float(r.get("Score_GAU"))
+        supplied_mean = safe_float(r.get("mean_score") or r.get("Score"))
+        
+        if score_jlu is not None and score_gau is not None:
+            mean_score = (score_jlu + score_gau) / 2.0
+        elif supplied_mean is not None:
+            mean_score = supplied_mean
+        else:
+            continue # Skip invalid / NA score rows
 
         plot_group = r.get("QR-Code") or r.get("Plotnr") or "unknown"
         manifest_rows.append({
