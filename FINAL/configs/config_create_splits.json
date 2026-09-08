@@ -1,0 +1,10 @@
+{
+    "action": "create_splits",
+    "manifest": "outputs/tables/data_manifest.csv",
+    "out_manifest": "outputs/tables/data_manifest_split.csv",
+    "split_audit": "outputs/tables/baseline_split_audit.json",
+    "split_groups": "outputs/tables/baseline_split_groups.json",
+    "seed": 42,
+    "test_size": 0.15,
+    "val_size": 0.15
+}

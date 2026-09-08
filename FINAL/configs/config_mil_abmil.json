@@ -1,0 +1,23 @@
+{
+    "action": "train_mil",
+    "out_manifest": "outputs/tables/data_manifest_split.csv",
+    "cache_path": "outputs/cache/dinov3_bags.pt",
+    "epochs": 50,
+    "batch_size": 32,
+    "lr": 0.001,
+    "loss": "huber",
+    "patience": 10,
+    "out_dir": "outputs/runs",
+    "run_name": "mil_abmil_seed42",
+    "seed": 42,
+    "num_workers": 4,
+    "image_size": 224,
+    "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m",
+    "weights_path": "weights/dinov3-vits16-hf",
+    "head_width": 256,
+    "attn_L": 128,
+    "dropout_p": 0.3,
+    "training_mode": "regression",
+    "high_quality_only": false,
+    "aggregation": "abmil"
+}

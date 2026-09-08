@@ -1,10 +1,12 @@
 {
+    "action": "train_mil",
     "raw_dir": "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage",
-    "manifest": "outputs/tables/baseline_manifest.csv",
+    "manifest": "outputs/tables/data_manifest.csv",
     "audit": "outputs/tables/baseline_audit.json",
-    "out_manifest": "outputs/tables/baseline_manifest_split.csv",
+    "out_manifest": "outputs/tables/data_manifest_split.csv",
     "split_audit": "outputs/tables/baseline_split_audit.json",
     "split_groups": "outputs/tables/baseline_split_groups.json",
+    "cache_path": "outputs/cache/dinov3_bags.pt",
     
     "disagreement_threshold": 5.0,
     "test_size": 0.15,
@@ -16,21 +18,23 @@
     "loss": "huber",
     "patience": 10,
     "out_dir": "outputs/runs",
-    "run_name": "baseline_regression_seed42",
+    "run_name": "mil_abmil_seed42",
     "seed": 42,
     "num_workers": 4,
     "image_size": 224,
-    "model_name": "dinov3_vits16",
+    "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m",
     "weights_path": "weights/dinov3-vits16-hf",
     "head_width": 256,
+    "attn_L": 128,
     "dropout_p": 0.3,
     "training_mode": "regression",
     "high_quality_only": false,
     "joint_margin": 5.0,
+    "aggregation": "abmil",
     
-    "model_path": "outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth",
-    "preds_file": "outputs/runs/baseline_regression_seed42/tables/test_predictions.csv",
+    "model_path": "outputs/runs/mil_abmil_seed42/checkpoints/best_model.pth",
+    "preds_file": "outputs/tables/test_predictions.csv",
     "out_rank": "outputs/tables/resistance_leaderboard.csv",
     
-    "log_file": "outputs/runs/baseline_regression_seed42/logs/training_log.csv"
+    "log_file": "outputs/runs/mil_abmil_seed42/logs/training_log.csv"
 }

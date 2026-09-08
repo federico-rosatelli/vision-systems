@@ -1,0 +1,6 @@
+{
+    "action": "evaluate_ood",
+    "model_path": "outputs/runs/mil_abmil_seed42/checkpoints/best_model.pth",
+    "raw_dir": "../dataset/Pictures_CFSB_leaf_damage",
+    "out_dir": "outputs/tables"
+}

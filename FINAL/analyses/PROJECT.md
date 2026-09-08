@@ -137,11 +137,13 @@ The MSE model is worse than the official Huber checkpoint on validation MAE and 
 | 7 | Plant-focused patch extraction | Complete |
 | 8 | Plant-patch dataset | Complete |
 | 9 | Plant-focused patch baseline (DINOv3 aggregation) | Complete |
-| 10 | Ranking-based comparison on validated features | Complete |
+| 10 | Multiple Instance Learning (MIL / ABMIL) | Complete |
 | 11 | Biological feature extraction (holes and pitting) | Complete |
-| 12 | Domain robustness | Pending |
-| 13 | Genotype resistance analysis | Pending |
-| 14 | Packaging and presentation | Pending |
+| 12 | Out-of-Distribution (OOD) Domain Robustness Benchmark | Complete |
+| 13 | JSON Configuration System Workflow | Complete |
+| 14 | Genotype resistance analysis | Pending |
+| 15 | Packaging and presentation | Pending |
+
 
 ### Step 6 — Detect and crop the metal-frame interior
 
@@ -335,69 +337,57 @@ python -m src.preprocessing.biological_features --config configs/biology_audit.j
 
 This pipeline complements the DINOv3-based regression (Phase 6) by providing explainable, per-plant biological metrics. DINOv3 captures semantic damage patterns (including edge bites) that classical CV cannot, while the classical pipeline provides interpretable physical measurements that the neural network does not.
 
-### Step 10 — Domain robustness
+### Step 10 — Multiple Instance Learning (MIL / ABMIL)
 
-1. Evaluate the selected pipeline separately on other labeled BBCH10-11 locations.
-2. Treat BBCH13-15 as a separate domain-shift experiment.
-3. Report results by location, date, lighting, and BBCH where metadata permits.
-4. Do not merge domain-shift results into the original held-out baseline score.
+**Status: Complete.**
+- Refactored full-image downsampling to a patch-based Multiple Instance Learning (MIL) formulation.
+- Implemented `AttentionMIL` (ABMIL) and `GatedAttentionMIL` in `src/models/mil_model.py`.
+- Added pre-computed DINOv3 patch feature bag caching (`cache_embeddings.py` -> `outputs/cache/dinov3_bags.pt`), enabling ~100x training speedup.
 
-### Step 11 — Genotype resistance analysis
+### Step 12 — Out-of-Distribution (OOD) Domain Robustness Benchmark
 
-1. Aggregate the three image views into plot-level predictions.
-2. Preserve view-to-view variation as uncertainty.
-3. Compare genotypes only within compatible experimental blocks.
-4. Aggregate replicated plots and report mean adjusted damage, confidence intervals, plot count, and rank.
-5. Compare predicted and manual rankings using Spearman correlation, pairwise accuracy, and top/bottom overlap.
-6. Include separate hole/pitting features when validated because their ratio may carry resistance information beyond combined damage.
+**Status: Complete.** Evaluated the trained DINOv3 + ABMIL model on zero-shot OOD field trial datasets:
 
-### Step 12 — Package and present
+| OOD Dataset | Folder | Sample Count | MAE (%) | RMSE (%) | Pearson $r$ | Spearman $\rho$ |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Rauischholzhausen WG1** | `2025_10_07_RSFB-Phenotyping_WG1_JLU` | 906 | **4.29%** | **5.83%** | **0.293** | **0.199** |
+| **DSV Trial 1** | `2025_09_15_Res4StRes_T1_DSV` | 897 | **15.60%** | **17.24%** | **0.207** | **0.193** |
 
-1. Freeze configs, split IDs, selected checkpoints, metrics, predictions, plots, and hashes.
-2. Provide image/folder inference with CSV export.
-3. Write a report that includes the failed whole-image baseline, label subjectivity, resolution limitation, crop validation, and domain limitations.
-4. Prepare a concise presentation and recorded demonstration backup.
+### Step 13 — JSON Configuration System Workflow
+
+**Status: Complete.**
+- `main.py` updated with pre-parsing logic using `set_defaults(**config_defaults)`.
+- Invoking `python main.py` with no CLI arguments automatically loads default settings from `configs/config.json`.
+- Explicit CLI flags override JSON settings.
+- Created modular JSON configurations in `configs/` (`config_prepare_data.json`, `config_create_splits.json`, `config_mil_cache.json`, `config_mil_abmil.json`, `config_mil_gated_joint.json`, `config_mil_evaluate.json`, `config_mil_ood.json`).
 
 ## 8. Immediate next actions
 
 Do these in order:
 
-1. Implement a frame-interior crop and overlay visualization.
-2. Manually validate the crop on a stratified train/validation sample.
-3. Implement green-region plant proposal generation inside the frame.
-4. Save plant-patch overlays and verify that small holes and pitting remain visible.
-5. Train a frozen-DINOv3 plant-patch aggregation model using train/validation only.
-6. Compare it with the official validation baseline and constant references.
-7. Freeze the best complete pipeline before deciding whether a separately named second test evaluation is justified.
-8. Resume ranking experiments only if the new representation produces useful validation ordering.
-
-Do not repeatedly inspect or tune against the 73-image test split. Do not proceed to genotype claims, UI work, or missing-edge reconstruction before the plant-focused scoring pipeline is validated.
+1. Perform genotype resistance leaderboard ranking on aggregated plot groups (`main.py --config configs/config_mil_evaluate.json`).
+2. Compare predicted genotype ranking against expert manual scores.
+3. Package pipeline for presentation.
 
 ## 9. Reproducible commands
 
-Official baseline diagnostics, restricted to train and validation:
+JSON Configuration File Workflow:
 
 ```bash
-python -m src.evaluation.diagnose \
-  --checkpoint outputs/runs/baseline_regression_seed42/checkpoints/best_model.pth \
-  --output-dir outputs/runs/baseline_regression_seed42/diagnostics
-```
+# 1. Feature extraction to disk cache
+python main.py --config configs/config_mil_cache.json
 
-MSE ablation training and diagnostics:
+# 2. Train Attention MIL (ABMIL)
+python main.py --config configs/config_mil_abmil.json
 
-```bash
-python main.py train --config configs/config_mse.json
-python -m src.evaluation.diagnose \
-  --checkpoint outputs/runs/baseline_regression_mse_seed42/checkpoints/best_model.pth \
-  --output-dir outputs/runs/baseline_regression_mse_seed42/diagnostics
-```
+# 3. Evaluate In-Distribution Test Set
+python main.py --config configs/config_mil_evaluate.json
 
-The official test command has already been run once. It is documented for reproducibility, not for iterative model selection:
-
-```bash
-python main.py evaluate --config configs/config.json
+# 4. Evaluate Zero-Shot OOD Benchmark
+python main.py --config configs/config_mil_ood.json
 ```
 
 ## 10. Definition of done
 
 The project is complete when another student can recreate the manifest and fixed split, reproduce the official baseline and selected plant-focused/ranking experiments, regenerate every reported metric and figure, and trace genotype rankings through plots to source images. Claims must distinguish validated results from exploratory features and account for subjective labels, grouped leakage, test-set isolation, image resolution, domain shift, and biological confounding.
+

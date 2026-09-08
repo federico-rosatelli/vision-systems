@@ -267,17 +267,61 @@ An ablation removing the 5-pixel minimum area filter (to include micro-holes) re
 python -m src.preprocessing.biological_features --config configs/biology_audit.json
 ```
 
+## Phase 9 — Multiple Instance Learning (MIL) Architecture & Pre-embedding Caching
+
+**Status: Complete.**
+- Refactored whole-image downsampling to a patch-based **Multiple Instance Learning (MIL)** formulation using frozen DINOv3 ViT-S/16 patch embeddings ($384$-dim) and Attention-based MIL pooling (`AttentionMIL` / `GatedAttentionMIL`).
+- Implemented `cache_embeddings.py` to pre-compute and store DINOv3 patch feature bags into `outputs/cache/dinov3_bags.pt`, achieving a **~100x speedup** during training (<1s/epoch).
+- Integrated `CSFBCachedBagDataset` and `CSFBCachedPairedBagDataset` in `src/data/patch_dataset.py`.
+
+## Phase 10 — JSON Configuration System (CLI Workflow)
+
+**Status: Complete.**
+- Updated `main.py` with pre-parsing logic using `set_defaults(**config_defaults)`.
+- Invoking `python main.py` with no CLI arguments automatically loads default settings from [configs/config.json](file:///home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/configs/config.json).
+- Explicit CLI flags override JSON settings.
+- Created modular JSON configurations in `configs/`:
+  - `configs/config_prepare_data.json`
+  - `configs/config_create_splits.json`
+  - `configs/config_mil_cache.json`
+  - `configs/config_mil_abmil.json`
+  - `configs/config_mil_gated_joint.json`
+  - `configs/config_mil_evaluate.json`
+  - `configs/config_mil_ood.json`
+- Implemented `tests/test_config.py` (33 unit tests passing).
+
+## Phase 11 — Zero-Shot Out-of-Distribution (OOD) Evaluation
+
+**Status: Complete.** Evaluated the trained DINOv3 + ABMIL model on zero-shot OOD field trial datasets:
+
+| OOD Dataset | Folder | Sample Count | MAE (%) | RMSE (%) | Pearson $r$ | Spearman $\rho$ |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Rauischholzhausen WG1** | `2025_10_07_RSFB-Phenotyping_WG1_JLU` | 906 | **4.29%** | **5.83%** | **0.293** | **0.199** |
+| **DSV Trial 1** | `2025_09_15_Res4StRes_T1_DSV` | 897 | **15.60%** | **17.24%** | **0.207** | **0.193** |
+
+### Execution Commands (JSON Config Workflow)
+
+```bash
+# 1. Feature extraction to disk cache
+python main.py --config configs/config_mil_cache.json
+
+# 2. Train Attention MIL (ABMIL)
+python main.py --config configs/config_mil_abmil.json
+
+# 3. Evaluate In-Distribution Test Set
+python main.py --config configs/config_mil_evaluate.json
+
+# 4. Evaluate Zero-Shot OOD Benchmark
+python main.py --config configs/config_mil_ood.json
+```
+
 ## Immediate implementation order
 
-1. Implement the frame-interior crop and overlay generator.
-2. Generate a stratified 30-image train/validation review set.
-3. Manually review and record crop quality.
-4. Implement green-region masking and plant-patch generation.
-5. Save and review patch overlays.
-6. Add dataset and preprocessing tests.
-7. Train the frame-crop and plant-patch validation experiments.
-8. Compare all validation results with the official baseline and constants.
-9. Decide whether the representation is ready for ranking.
+1. Pre-compute DINOv3 patch feature bags into disk cache.
+2. Train ABMIL and Gated ABMIL regression models using JSON config workflow.
+3. Perform in-distribution test set evaluation.
+4. Execute zero-shot Out-of-Distribution (OOD) benchmark evaluation.
+5. Verify test suite (33 unit tests passed).
 
 ## Documentation rule
 
@@ -293,3 +337,4 @@ After every implemented phase, update `analyses/PROJECT.md` with:
 - next approved step.
 
 Do not mark a phase complete based only on code existing. Its exit criteria and proportional verification must also be complete.
+

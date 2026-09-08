@@ -17,8 +17,32 @@ from src.visualization.plots import plot_training_history
 from tests.test_pipeline import test_full_pipeline
 
 def parse_args():
+    # 1. Pre-parse to check if --config was passed on command line
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument("--config", type=str, default=None, help="Path to JSON configuration file")
+    known_args, _ = config_parser.parse_known_args()
+
+    # 2. Determine configuration file
+    config_file = known_args.config
+    if config_file is None and os.path.exists("configs/config.json"):
+        config_file = "configs/config.json"
+
+    config_defaults = {}
+    if config_file and os.path.exists(config_file):
+        try:
+            with open(config_file, "r") as f:
+                config_defaults = json.load(f)
+            print(f"Loaded configuration from {config_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load config from {config_file}: {e}")
+    elif config_file:
+        print(f"Warning: Configuration file {config_file} not found.")
+
     parser = argparse.ArgumentParser(description="CSFB Damage Quantification Pipeline")
-    parser.add_argument("action", type=str, choices=[
+    
+    # 3. Add arguments with defaults
+    default_action = config_defaults.get("action", None)
+    parser.add_argument("action", type=str, nargs="?", default=default_action, choices=[
         "prepare_data", "create_splits", "cache_embeddings", "train", "train_patch", 
         "train_mil", "evaluate", "evaluate_mil", "evaluate_ood", "rank", "predict", 
         "plot_logs", "test", "all"
@@ -81,23 +105,20 @@ def parse_args():
                         help="Path to the training log CSV for plotting")
                         
     # Configuration file
-    parser.add_argument("--config", type=str, help="Path to a JSON configuration file to override arguments")
+    parser.add_argument("--config", type=str, default=config_file, help="Path to a JSON configuration file to override arguments")
+
+    # Override defaults with JSON config
+    if config_defaults:
+        parser.set_defaults(**config_defaults)
     
     return parser.parse_args()
 
 def main():
     args = parse_args()
-    
-    if args.config:
-        if os.path.exists(args.config):
-            with open(args.config, 'r') as f:
-                config_data = json.load(f)
-            for key, value in config_data.items():
-                if hasattr(args, key):
-                    setattr(args, key, value)
-            print(f"Loaded configuration from {args.config}")
-        else:
-            print(f"Warning: Configuration file {args.config} not found.")
+
+    if not args.action:
+        print("Error: No action specified on command line or in configuration file.")
+        return
     
     if args.action in ["prepare_data", "all"]:
         print("=== Step 1: Data Preparation ===")
