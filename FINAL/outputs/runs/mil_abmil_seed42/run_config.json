@@ -1,0 +1,37 @@
+{
+  "created_at_utc": "2026-09-08T09:46:52.731141+00:00",
+  "dependencies": {
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "torch": "2.13.0",
+    "torchvision": "0.28.0"
+  },
+  "git_commit": "9dce4dbd41ee6adf2d2b2a39c1893aeea6b64afe",
+  "manifest_path": "/home/user/rosatellif1/vision-systems/FINAL/outputs/tables/data_manifest_split.csv",
+  "manifest_sha256": "bb4ba224545d01075e6f4b9fbedcaa10a806344c1c9a8ee10daca9f7e472ebf9",
+  "model": {
+    "aggregation": "abmil",
+    "attn_L": 128,
+    "dropout_p": 0.3,
+    "head_width": 256,
+    "image_size": 224,
+    "local_weights_path": "weights/dinov3-vits16-hf",
+    "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m"
+  },
+  "run_name": "mil_abmil_seed42",
+  "schema_version": 1,
+  "training": {
+    "batch_size": 32,
+    "cache_path": "outputs/cache/dinov3_bags.pt",
+    "epochs": 50,
+    "high_quality_only": true,
+    "joint_margin": 5.0,
+    "learning_rate": 0.001,
+    "loss": "huber",
+    "num_workers": 4,
+    "patience": 10,
+    "seed": 42,
+    "training_mode": "regression"
+  }
+}
