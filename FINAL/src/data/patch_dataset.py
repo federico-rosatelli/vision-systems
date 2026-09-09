@@ -6,6 +6,9 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import cv2
 import numpy as np
+from pathlib import Path
+
+from src.training.provenance import sha256_file
 
 from src.preprocessing.frame_crop import detect_frame, crop_frame_interior, read_image_oriented
 from src.preprocessing.plant_regions import extract_plant_regions
@@ -150,18 +153,61 @@ class CSFBPatchPairedDataset(Dataset):
         return patch_A, area_A, target_A, group_A, patch_B, area_B, target_B, group_B
 
 
+def validate_fixed_manifest(manifest_path, expected_count=470):
+    """Validate the leakage-safe manifest used for final patch/MIL experiments."""
+    df = pd.read_csv(manifest_path)
+    required = {"filename", "image_path", "plot_group", "mean_score", "split"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Manifest is missing required columns: {sorted(missing)}")
+    if len(df) != expected_count:
+        raise ValueError(f"Expected {expected_count} manifest rows, found {len(df)}")
+    if df["filename"].nunique(dropna=False) != expected_count:
+        raise ValueError("Manifest filenames are not unique")
+    if df["image_path"].nunique(dropna=False) != expected_count:
+        raise ValueError("Manifest physical image paths are not unique")
+    if df["plot_group"].isna().any() or df["plot_group"].astype(str).str.strip().str.lower().isin({"", "unknown", "nan"}).any():
+        raise ValueError("Manifest contains missing or unknown plot groups")
+    expected_splits = {"train": 331, "val": 66, "test": 73}
+    actual_splits = df["split"].value_counts().to_dict()
+    if actual_splits != expected_splits:
+        raise ValueError(f"Expected split counts {expected_splits}, found {actual_splits}")
+    group_split_counts = df.groupby("plot_group")["split"].nunique()
+    if (group_split_counts > 1).any():
+        raise ValueError("Manifest has plot-group leakage across splits")
+    return df.reset_index(drop=True)
+
+
+def validate_cache_for_manifest(cache_data, manifest_path):
+    """Reject stale or incorrectly sourced embedding caches."""
+    manifest_path = Path(manifest_path).resolve()
+    expected_hash = sha256_file(manifest_path)
+    if cache_data.get("manifest_sha256") != expected_hash:
+        raise ValueError("Embedding cache does not match the requested manifest")
+    manifest = pd.read_csv(manifest_path)
+    bags = cache_data.get("bags", [])
+    if len(bags) != len(manifest):
+        raise ValueError("Embedding cache bag count does not match the manifest")
+    if {b.get("filename") for b in bags} != set(manifest["filename"]):
+        raise ValueError("Embedding cache filenames do not match the manifest")
+
+
 class CSFBCachedBagDataset(Dataset):
     """
     PyTorch Dataset that loads pre-computed patch embedding bags from disk cache.
     """
-    def __init__(self, cache_path, split=None):
+    def __init__(self, cache_path, split=None, high_quality_only=False, manifest_path=None):
         if not os.path.exists(cache_path):
             raise FileNotFoundError(f"Cached bag file not found: {cache_path}")
         try:
             data = torch.load(cache_path, map_location='cpu', weights_only=False)
         except TypeError:
             data = torch.load(cache_path, map_location='cpu')
+        if manifest_path is not None:
+            validate_cache_for_manifest(data, manifest_path)
         all_bags = data['bags']
+        if high_quality_only:
+            all_bags = [b for b in all_bags if b.get('is_high_quality', True)]
         if split:
             self.bags = [b for b in all_bags if b.get('split') == split]
         else:
@@ -190,8 +236,11 @@ class CSFBCachedPairedBagDataset(Dataset):
     """
     PyTorch Dataset for Paired Ranking using pre-computed patch embedding bags.
     """
-    def __init__(self, cache_path, split='train', margin=5.0):
-        self.base_dataset = CSFBCachedBagDataset(cache_path, split=split)
+    def __init__(self, cache_path, split='train', margin=5.0, high_quality_only=False, manifest_path=None):
+        self.base_dataset = CSFBCachedBagDataset(
+            cache_path, split=split, high_quality_only=high_quality_only,
+            manifest_path=manifest_path
+        )
         self.margin = margin
         self.partners = self._build_valid_partners()
         
@@ -277,14 +326,26 @@ def get_patch_dataloaders(manifest_path, batch_size=32, num_workers=4, image_siz
     if cache_path and os.path.exists(cache_path):
         print(f"Loading pre-extracted MIL patch feature bags from {cache_path}...")
         if training_mode == 'joint':
-            train_dataset = CSFBCachedPairedBagDataset(cache_path, split='train', margin=joint_margin)
+            train_dataset = CSFBCachedPairedBagDataset(
+                cache_path, split='train', margin=joint_margin,
+                high_quality_only=high_quality_only, manifest_path=manifest_path
+            )
             train_collate_fn = patch_paired_collate_fn
         else:
-            train_dataset = CSFBCachedBagDataset(cache_path, split='train')
+            train_dataset = CSFBCachedBagDataset(
+                cache_path, split='train', high_quality_only=high_quality_only,
+                manifest_path=manifest_path
+            )
             train_collate_fn = patch_collate_fn
 
-        val_dataset = CSFBCachedBagDataset(cache_path, split='val')
-        test_dataset = CSFBCachedBagDataset(cache_path, split='test')
+        val_dataset = CSFBCachedBagDataset(
+            cache_path, split='val', high_quality_only=high_quality_only,
+            manifest_path=manifest_path
+        )
+        test_dataset = CSFBCachedBagDataset(
+            cache_path, split='test', high_quality_only=high_quality_only,
+            manifest_path=manifest_path
+        )
     else:
         if cache_path:
             print(f"Notice: Cache path {cache_path} not found. Falling back to on-the-fly extraction.")

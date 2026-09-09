@@ -7,6 +7,7 @@ from src.data.patch_dataset import (
     CSFBCachedPairedBagDataset,
     get_patch_dataloaders
 )
+from src.training.provenance import sha256_file
 
 @pytest.fixture
 def mock_cache_file(tmp_path):
@@ -73,7 +74,16 @@ def test_csfb_cached_paired_bag_dataset(mock_cache_file):
 
 def test_get_patch_dataloaders_cached(mock_cache_file, tmp_path):
     manifest_file = tmp_path / "mock_manifest.csv"
-    manifest_file.write_text("filename,mean_score,plot_group,split\n")
+    manifest_file.write_text(
+        "filename,mean_score,plot_group,split\n"
+        "img1.jpg,12.5,plot_A,train\n"
+        "img2.jpg,25.0,plot_B,train\n"
+        "img3.jpg,10.0,plot_C,val\n"
+        "img4.jpg,40.0,plot_D,test\n"
+    )
+    cache = torch.load(mock_cache_file, weights_only=False)
+    cache['manifest_sha256'] = sha256_file(manifest_file)
+    torch.save(cache, mock_cache_file)
     
     train_loader, val_loader, test_loader = get_patch_dataloaders(
         manifest_path=str(manifest_file),

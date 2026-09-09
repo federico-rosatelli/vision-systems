@@ -11,7 +11,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.data.patch_dataset import get_patch_dataloaders
+from src.data.patch_dataset import get_patch_dataloaders, validate_fixed_manifest
 from src.models.mil_model import DINOv3MILRegressor
 from src.visualization.plots import plot_pred_vs_true, plot_residuals
 
@@ -29,6 +29,7 @@ def pairwise_ranking_accuracy(y_true, y_pred, minimum_gap):
     return {"accuracy": correct / total if total else None, "pair_count": total}
 
 def evaluate_mil_model(manifest, model_path, batch_size=32, out_dir=None, num_workers=4, cache_path=None):
+    validate_fixed_manifest(manifest)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Evaluating MIL model on device: {device}")
     

@@ -29,6 +29,7 @@ weights/
 *.safetensors
 
 # Large and temporary experiment artifacts
+outputs/cache/*.pt
 outputs/runs/*/checkpoints/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/

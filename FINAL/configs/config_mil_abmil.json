@@ -1,6 +1,6 @@
 {
     "action": "train_mil",
-    "out_manifest": "outputs/tables/data_manifest_split.csv",
+    "out_manifest": "outputs/tables/baseline_manifest_split.csv",
     "cache_path": "outputs/cache/dinov3_bags.pt",
     "epochs": 50,
     "batch_size": 32,

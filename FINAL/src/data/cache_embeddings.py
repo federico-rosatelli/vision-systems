@@ -7,13 +7,18 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.data.patch_dataset import CSFBPlantPatchDataset, patch_collate_fn
+from src.data.patch_dataset import (
+    CSFBPlantPatchDataset,
+    patch_collate_fn,
+    validate_fixed_manifest,
+)
 from src.models.mil_model import DINOv3MILRegressor
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
+from src.training.provenance import sha256_file
 
 def cache_dinov3_patch_embeddings(
-    manifest_path="outputs/tables/data_manifest_split.csv",
+    manifest_path="outputs/tables/baseline_manifest_split.csv",
     output_cache_path="outputs/cache/dinov3_bags.pt",
     weights_path="weights/dinov3-vits16-hf",
     model_name="facebook/dinov3-vits16-pretrain-lvd1689m",
@@ -28,6 +33,9 @@ def cache_dinov3_patch_embeddings(
     os.makedirs(os.path.dirname(output_cache_path), exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Caching patch embeddings using device: {device}")
+
+    # Fail before loading the model or extracting features if the contract is broken.
+    manifest_df = validate_fixed_manifest(manifest_path)
 
     # Load Model (only backbone needed)
     local_weights = weights_path if os.path.exists(weights_path) else None
@@ -81,17 +89,28 @@ def cache_dinov3_patch_embeddings(
                 'areas': areas,       # [N] CPU tensor
                 'target': target,     # float
                 'plot_group': plot_group,
-                'split': split
+                'split': split,
+                'image_path': str(row['image_path']),
+                'is_high_quality': bool(row.get('is_high_quality', True))
             })
 
     elapsed = time.time() - start_t
     print(f"Extraction complete in {elapsed:.1f}s.")
 
     torch.save({
-        'version': 1,
+        'version': 2,
         'model_name': model_name,
         'weights_path': weights_path,
         'manifest_path': manifest_path,
+        'manifest_sha256': sha256_file(manifest_path),
+        'preprocessing': {
+            'image_size': image_size,
+            'frame_crop': True,
+            'plant_region_method': 'hsv_connected_regions',
+            'normalization_mean': [0.485, 0.456, 0.406],
+            'normalization_std': [0.229, 0.224, 0.225]
+        },
+        'manifest_rows': len(manifest_df),
         'bags': cached_bags
     }, output_cache_path)
 
@@ -100,7 +119,7 @@ def cache_dinov3_patch_embeddings(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cache DINOv3 Patch Embeddings")
-    parser.add_argument("--manifest", default="outputs/tables/data_manifest_split.csv")
+    parser.add_argument("--manifest", default="outputs/tables/baseline_manifest_split.csv")
     parser.add_argument("--out_cache", default="outputs/cache/dinov3_bags.pt")
     parser.add_argument("--weights_path", default="weights/dinov3-vits16-hf")
     args = parser.parse_args()

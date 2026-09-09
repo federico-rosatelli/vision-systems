@@ -14,7 +14,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from src.data.patch_dataset import get_patch_dataloaders
+from src.data.patch_dataset import get_patch_dataloaders, validate_fixed_manifest
 from src.models.mil_model import DINOv3MILRegressor
 from src.models.dinov3_regressor import get_loss_function
 from src.models.losses import JointRankingRegressionLoss, AttentionEntropyLoss
@@ -55,7 +55,7 @@ def evaluate_constants(train_loader, val_loader):
     }
 
 def train_mil_model(
-    manifest="outputs/tables/data_manifest_split.csv",
+    manifest="outputs/tables/baseline_manifest_split.csv",
     cache_path=None,
     epochs=50,
     batch_size=32,
@@ -79,6 +79,7 @@ def train_mil_model(
     lambda_entropy=0.0
 ):
     set_seed(seed)
+    validate_fixed_manifest(manifest)
 
     run_dir = os.path.join(out_dir, run_name)
     checkpoints_dir = os.path.join(run_dir, "checkpoints")
