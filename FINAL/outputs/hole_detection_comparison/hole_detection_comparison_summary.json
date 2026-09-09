@@ -1,0 +1,8 @@
+{
+  "manual_review_complete": true,
+  "review_conclusion": "rejected",
+  "review_notes": "The soil-aware rule did not reliably separate shot holes from pitting. Several apparent holes remain classified as pitting, and detections are inconsistent across soil conditions.",
+  "sample_size": 20,
+  "soil_lab_distance": 35.0,
+  "test_images": 0
+}

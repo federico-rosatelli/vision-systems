@@ -34,6 +34,8 @@ outputs/plant_weight_audit/masks/
 outputs/plant_weight_audit/overlays/
 outputs/direct_damage_audit/masks/
 outputs/direct_damage_audit/overlays/
+outputs/hole_detection_comparison/overlays/
+outputs/hole_detection_comparison/review_pages/
 outputs/runs/*/checkpoints/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/

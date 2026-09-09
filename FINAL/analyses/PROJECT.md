@@ -68,6 +68,8 @@ The corrected formulation predicts a score for every plant instance and then ave
 
 A corrected classical computer-vision audit separately estimates enclosed holes and pitting using valid plant-region crop coordinates. On a balanced 40-image train/validation set, its preliminary direct damage percentage reaches Spearman rho 0.6425 and Pearson r 0.4564 against the expert score. Manual review found the leaf masks and pitting regions mainly acceptable but rejected the shot-hole detections as unreliable. The combined direct percentage is therefore not validated. Leaf area and pitting remain exploratory features while shot-hole detection requires improvement; edge damage also remains unmeasured.
 
+A soil-aware hole classifier was compared with the old brightness-only rule on 20 difficult train/validation images. Manual inspection showed that it still confused apparent holes with pitting and behaved inconsistently across soil conditions, so it is rejected. Further threshold tuning is not defensible without pixel-level labels. Reliable separate hole and pitting measurements now require a small manually annotated segmentation set.
+
 ## Results that must not be used as final evidence
 
 The later cached ABMIL experiment used `outputs/tables/data_manifest_split.csv`, which is not the fixed 470-image manifest. It contains duplicated physical images across splits and records with unknown plot groups. The resulting 612-sample MIL test metrics are contaminated and invalid for model comparison.
@@ -78,7 +80,7 @@ The current resistance leaderboard must also be regenerated. It includes an `unk
 
 ## Current decision
 
-Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. The direct-damage audit rejected the current shot-hole detector, so its combined percentage cannot yet be used. The next step is improving shot-hole detection and repeating a focused audit before clean OOD evaluation. Genotype ranking comes last.
+Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. Both classical shot-hole rules failed manual review, so the combined direct percentage cannot be used. The next step for separate biological features is manual hole/pitting segmentation annotation; the trained area-weighted scoring model can proceed independently to clean OOD evaluation.
 
 The compact plant-weight audit evidence is stored in Git, while its per-image masks and overlays are ignored and regenerated locally using the documented command. Regeneration preserves the recorded manual review.
 

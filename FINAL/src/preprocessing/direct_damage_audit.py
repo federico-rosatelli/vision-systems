@@ -28,7 +28,8 @@ def combined_damage_percentage(leaf_area, hole_area, pitting_area):
     return 100.0 * (hole_area + pitting_area) / leaf_area if leaf_area > 0 else 0.0
 
 
-def analyze_frame_damage(frame, plant_parameters=None, hsv_bounds=None):
+def analyze_frame_damage(frame, plant_parameters=None, hsv_bounds=None,
+                         hole_classification="brightness", soil_lab_distance=35.0):
     plant_parameters = plant_parameters or {}
     _, regions = extract_plant_regions(frame, **plant_parameters)
     leaf_mask = np.zeros(frame.shape[:2], dtype=np.uint8)
@@ -40,7 +41,8 @@ def analyze_frame_damage(frame, plant_parameters=None, hsv_bounds=None):
         x1, y1, x2, y2 = region.patch_box
         patch = frame[y1:y2, x1:x2]
         metrics, pitting_contours, hole_contours, patch_leaf_mask = analyze_plant_biology(
-            patch, hsv_bounds=hsv_bounds
+            patch, hsv_bounds=hsv_bounds, hole_classification=hole_classification,
+            soil_lab_distance=soil_lab_distance,
         )
         target_leaf = leaf_mask[y1:y2, x1:x2]
         cv2.bitwise_or(target_leaf, patch_leaf_mask, dst=target_leaf)
@@ -99,7 +101,8 @@ def _preserve_reviews(audit, audit_path):
 
 def generate_direct_damage_audit(manifest, output_dir, sample_size=40, seed=73,
                                  working_width=1000, interior_inset_fraction=0.025,
-                                 plant_parameters=None, hsv_bounds=None):
+                                 plant_parameters=None, hsv_bounds=None,
+                                 hole_classification="brightness", soil_lab_distance=35.0):
     selected = select_audit_rows(manifest, sample_size=sample_size, seed=seed)
     if set(selected["split"]) - {"train", "val"}:
         raise ValueError("Direct-damage audit must not contain test images")
@@ -119,7 +122,9 @@ def generate_direct_damage_audit(manifest, output_dir, sample_size=40, seed=73,
             image, detection.corners, inset_fraction=interior_inset_fraction
         )
         metrics, leaf_mask, hole_mask, pitting_mask = analyze_frame_damage(
-            frame, plant_parameters=plant_parameters, hsv_bounds=hsv_bounds
+            frame, plant_parameters=plant_parameters, hsv_bounds=hsv_bounds,
+            hole_classification=hole_classification,
+            soil_lab_distance=soil_lab_distance,
         )
         stem = Path(row["filename"]).stem
         overlay_path = overlays_dir / f"{stem}_damage.jpg"

@@ -24,7 +24,8 @@ def get_green_mask(patch_bgr, hsv_bounds=None):
     upper = np.array(hsv_bounds['upper'], dtype=np.uint8)
     return cv2.inRange(hsv, lower, upper)
 
-def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None):
+def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None,
+                          hole_classification="brightness", soil_lab_distance=35.0):
     """
     Aggregates all biological features for a single plant patch using a topological approach.
     It fills the external contours of the green leaf to find the solid leaf area,
@@ -48,6 +49,11 @@ def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None):
     damage_contours, _ = cv2.findContours(damage_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
+    lab = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2LAB)
+    outside_leaf = filled_leaf_mask == 0
+    non_green = green_mask == 0
+    soil_pixels = lab[outside_leaf & non_green]
+    soil_lab = np.median(soil_pixels, axis=0) if len(soil_pixels) else None
     
     pitting_area = 0
     pitting_count = 0
@@ -69,9 +75,14 @@ def analyze_plant_biology(patch_bgr, hsv_bounds=None, hsv_pitting_bounds=None):
         # Calculate mean Value (brightness) of the blob
         mean_v = cv2.mean(hsv[:, :, 2], mask=blob_mask)[0]
         
-        # If the blob is bright, it's necrosis/pitting. If it's dark (shadow/soil), it's a hole.
-        # Soil and shadows are typically V < 40. Necrotic tissue is usually brighter.
-        if mean_v >= 40:
+        is_hole = mean_v < 40
+        if hole_classification == "soil_similarity" and soil_lab is not None:
+            blob_lab = np.asarray(cv2.mean(lab, mask=blob_mask)[:3])
+            is_hole = is_hole or np.linalg.norm(blob_lab - soil_lab) <= soil_lab_distance
+        elif hole_classification != "brightness":
+            raise ValueError(f"Unknown hole classification: {hole_classification}")
+
+        if not is_hole:
             pitting_area += area
             pitting_count += 1
             pitting_cnts.append(cnt)

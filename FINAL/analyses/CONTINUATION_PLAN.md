@@ -143,6 +143,30 @@ The audit contains 20 train and 20 validation images, ten from each damage range
 
 Decision: retain leaf area and pitting as exploratory interpretable features, but do not report the current hole counts, hole areas, or combined direct percentage as validated measurements. Improve shot-hole detection and repeat a focused audit before using these outputs for OOD or genotype analysis.
 
+#### Focused shot-hole improvement
+
+Status: soil-aware classifier implemented and manually rejected.
+
+The old method labels only very dark enclosed regions as holes. The new method additionally identifies candidates whose Lab color resembles nearby exposed soil, because a true hole reveals the soil below the leaf. On the difficult subset, it reclassified 11 candidates as holes across nine images. Manual inspection showed that several apparent holes still remained classified as pitting and that results were inconsistent across soil conditions. The soil-aware rule is therefore rejected.
+
+Further threshold tuning is not justified without pixel-level labels because exposed soil and brown pitting can have similar RGB colors. The next defensible approach is to create a small manually annotated segmentation set with three classes: leaf tissue, shot hole, and pitting. Use annotations from varied soil, lighting, and damage levels, keep complete plot groups within one split, and use SAM-assisted annotation or a segmentation model only after the labels are reviewed.
+
+Artifacts:
+
+- Configuration: `configs/hole_detection_comparison.json`
+- Comparison code: `src/preprocessing/hole_detection_comparison.py`
+- Review table: `outputs/hole_detection_comparison/hole_detection_comparison.csv`
+- Contact sheet: `outputs/hole_detection_comparison/hole_detection_comparison_sheet.jpg`
+- High-resolution review pages: `outputs/hole_detection_comparison/review_pages/`
+
+The contact sheet is only a small overview. Use the five high-resolution review pages or individual files under `overlays/` for judging small holes. Each pair shows the old result on the left and the new result on the right. After review, summarize with:
+
+```bash
+python -m src.preprocessing.hole_detection_comparison \
+  --config configs/hole_detection_comparison.json \
+  --summarize-review
+```
+
 For each plant and image, compute and report separately:
 
 - estimated total leaf area;
