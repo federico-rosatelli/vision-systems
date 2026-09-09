@@ -18,7 +18,7 @@ def test_patch_model_weighted_aggregation(mock_from_pretrained):
     # Batch size 2. 
     # Image 1: 2 patches. Area 1: 100, Area 2: 300 (weights: 0.25, 0.75)
     # Patch 1 feature: all 1.0, Patch 2 feature: all 5.0
-    # Expected weighted feature: 1.0 * 0.25 + 5.0 * 0.75 = 0.25 + 3.75 = 4.0
+    # Expected weighted score: 1.0 * 0.25 + 5.0 * 0.75 = 4.0
     
     # Image 2: 1 patch. Area: 100
     # Patch 1 feature: all 2.0
@@ -67,7 +67,7 @@ def test_patch_model_uniform_aggregation(mock_from_pretrained):
     model = DINOv3PatchRegressor(aggregation="uniform")
     
     # Image 1: 2 patches. Patch 1 feature: 1.0, Patch 2 feature: 5.0
-    # Expected uniform feature: (1.0 + 5.0) / 2 = 3.0
+    # Expected uniform score: (1.0 + 5.0) / 2 = 3.0
     
     def mock_extract(patches):
         feat = torch.ones(2, mock_hidden_size)

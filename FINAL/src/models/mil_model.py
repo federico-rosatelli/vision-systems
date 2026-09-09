@@ -64,7 +64,8 @@ class GatedAttentionMIL(nn.Module):
 class DINOv3MILRegressor(nn.Module):
     """
     MIL Regressor using DINOv3 feature embeddings and trainable aggregation module.
-    Supports 'abmil', 'gated_abmil', 'weighted' (area-weighted), and 'uniform' mean.
+    Supports score-level 'weighted' and 'uniform' pooling, attention MIL, and the
+    legacy 'feature_weighted' ablation.
     Can accept either raw image patch tensors [N, 3, 224, 224] or pre-extracted feature tensors [N, D].
     """
     def __init__(
@@ -134,9 +135,19 @@ class DINOv3MILRegressor(nn.Module):
         if features.shape[0] == 0:
             features = torch.zeros(1, self.embed_dim, device=features.device)
 
+        if self.aggregation in ["weighted", "uniform"]:
+            instance_scores = self.head(features) * 100.0
+            if self.aggregation == "weighted" and areas is not None and areas.sum() > 0:
+                attn_weights = (areas / areas.sum()).unsqueeze(1)
+            else:
+                attn_weights = torch.ones(
+                    features.shape[0], 1, device=features.device
+                ) / features.shape[0]
+            pred_score = (instance_scores * attn_weights).sum(dim=0, keepdim=True)
+            return pred_score, attn_weights
         if self.aggregation in ["abmil", "gated_abmil"]:
             agg_feat, attn_weights = self.mil_pool(features)
-        elif self.aggregation == "weighted" and areas is not None and areas.sum() > 0:
+        elif self.aggregation == "feature_weighted" and areas is not None and areas.sum() > 0:
             weights = areas / areas.sum()
             agg_feat = (features * weights.unsqueeze(1)).sum(dim=0)
             attn_weights = weights.unsqueeze(1)

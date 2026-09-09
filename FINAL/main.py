@@ -86,7 +86,7 @@ def parse_args():
                         help="Mode of training: regression or joint (ranking)")
     parser.add_argument("--high_quality_only", type=lambda x: (str(x).lower() == 'true'), default=True, help="Filter for high quality images during training")
     parser.add_argument("--joint_margin", type=float, default=5.0, help="Margin for Joint Ranking loss")
-    parser.add_argument("--aggregation", type=str, default="abmil", choices=["abmil", "gated_abmil", "weighted", "uniform"], 
+    parser.add_argument("--aggregation", type=str, default="abmil", choices=["abmil", "gated_abmil", "weighted", "uniform", "feature_weighted"],
                         help="Aggregation method for patch features (MIL only)")
     
     # Evaluation arguments

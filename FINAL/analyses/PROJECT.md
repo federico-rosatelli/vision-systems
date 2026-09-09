@@ -62,7 +62,7 @@ The model is worse than constant predictors on test MAE and does not learn usefu
 
 Pipeline: frame interior -> high-resolution plant regions -> frozen DINOv3 features -> visible-area-weighted aggregation -> regression.
 
-The recorded validation result is MAE 2.8104 and Spearman rho 0.8403. This is strong evidence that preserving plant-level detail is useful. The run metadata uses the correct 470-image manifest. Before making further test claims, its checkpoint and prediction artifacts must be restored and verified against that manifest.
+The corrected formulation predicts a score for every plant instance and then averages the scores using normalized plant-mask area. Across seeds 42, 43, and 44 it achieves validation MAE 2.6932 +/- 0.0232 and Spearman rho 0.8532 +/- 0.0022. It outperforms uniform score averaging, ABMIL, and gated ABMIL. The selected validation run is `aggregation_weighted_seed42`.
 
 ### Biological damage features
 
@@ -78,7 +78,7 @@ The current resistance leaderboard must also be regenerated. It includes an `unk
 
 ## Current decision
 
-Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired and a clean 470-bag cache can be generated reproducibly from the frozen manifest. Generated caches are not stored in Git; each team member creates one locally using the command in `analyses/CONTINUATION_PLAN.md`. The balanced 40-image plant-weight audit passed manual review: all masks and weights were marked usable. The next step is the controlled aggregation experiment. A clean OOD study follows model selection, and genotype ranking comes last.
+Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. The next step is validating the direct damaged-leaf-area calculation. A clean OOD study follows, and genotype ranking comes last.
 
 The compact plant-weight audit evidence is stored in Git, while its per-image masks and overlays are ignored and regenerated locally using the documented command. Regeneration preserves the recorded manual review.
 

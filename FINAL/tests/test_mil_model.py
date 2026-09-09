@@ -66,6 +66,22 @@ def test_dinov3_mil_regressor_gated_cached_inputs():
     assert scores.shape == (2, 1)
     assert (scores >= 0.0).all() and (scores <= 100.0).all()
 
+
+def test_score_level_area_weighting():
+    model = DINOv3MILRegressor(
+        model_name=None, local_weights_path=None, aggregation="weighted",
+        embed_dim=2, head_width=2,
+    )
+    model.head = torch.nn.Sequential(torch.nn.Linear(2, 1, bias=False))
+    with torch.no_grad():
+        model.head[0].weight.copy_(torch.tensor([[1.0, 0.0]]))
+    features = torch.tensor([[0.2, 0.0], [0.8, 0.0]])
+    areas = torch.tensor([1.0, 3.0])
+    score, weights = model.forward_bag(features, areas)
+    expected = (0.25 * 0.2 + 0.75 * 0.8) * 100.0
+    assert torch.allclose(score, torch.tensor([[expected]]))
+    assert torch.allclose(weights.squeeze(1), torch.tensor([0.25, 0.75]))
+
 @patch("src.models.mil_model.AutoModel.from_pretrained")
 def test_dinov3_mil_regressor_image_inputs(mock_from_pretrained):
     mock_backbone = MagicMock()

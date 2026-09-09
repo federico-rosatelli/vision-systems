@@ -89,7 +89,7 @@ python -m src.preprocessing.plant_weight_audit \
 
 ### 3. Run a controlled aggregation experiment
 
-Train and select models using train and validation only. Keep the frozen DINOv3 representation and preprocessing comparable.
+Status: complete. Twelve validation-only runs used the clean 470-bag cache: four aggregation methods and seeds 42, 43, and 44.
 
 Compare:
 
@@ -98,9 +98,34 @@ Compare:
 3. ABMIL attention pooling;
 4. gated ABMIL attention pooling.
 
-Run at least three seeds. Report MAE, RMSE, Pearson, Spearman, prediction spread, score-bin errors, pairwise accuracy, and constant baselines. For attention models, save instance weights and overlays to check whether the model focuses on plants rather than soil or segmentation errors.
+The `weighted` method applies the regression head to each plant feature and then averages plant scores using normalized mask-pixel area. The legacy feature-level weighted calculation is available only as the explicitly named `feature_weighted` ablation.
 
-Primary selection rule: lowest mean validation MAE across seeds, provided that Spearman and prediction spread do not materially degrade. Prefer visible-area weighting when performance is comparable.
+| Aggregation | Validation MAE, mean +/- SD | Spearman, mean +/- SD |
+|---|---:|---:|
+| Area-weighted plant scores | **2.6932 +/- 0.0232** | **0.8532 +/- 0.0022** |
+| Uniform plant scores | 2.7293 +/- 0.0402 | 0.8381 +/- 0.0064 |
+| ABMIL | 2.7430 +/- 0.0307 | 0.8093 +/- 0.0109 |
+| Gated ABMIL | 2.7808 +/- 0.0243 | 0.8046 +/- 0.0107 |
+
+Area weighting wins on both primary metrics and is stable across seeds. Its prediction standard deviation is 6.12-6.60 versus a target standard deviation of 6.85, and its gap-5 pairwise accuracy is 0.939-0.940. It also clearly beats the constant mean and median validation MAEs of 5.45 and 5.41. The selected run is `aggregation_weighted_seed42`, which has validation MAE 2.6670, RMSE 3.5830, Pearson 0.8587, and Spearman 0.8553.
+
+Artifacts:
+
+- Matrix configuration: `configs/aggregation_experiments.json`
+- Runner: `scripts/run_aggregation_experiments.py`
+- Per-run results: `outputs/tables/aggregation_validation_results.csv`
+- Across-seed summary: `outputs/tables/aggregation_validation_summary.csv`
+
+Reproduce all runs with:
+
+```bash
+python scripts/run_aggregation_experiments.py \
+  --config configs/aggregation_experiments.json
+```
+
+Recreate the tables from existing checkpoints without retraining with `--summarize-existing`.
+
+Selection decision: freeze area-weighted plant-score pooling. Do not inspect the 73-image test split while developing the direct damaged-area method.
 
 ### 4. Evaluate direct damaged-leaf-area percentage
 

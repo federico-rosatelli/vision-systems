@@ -24,6 +24,7 @@ class DINOv3PatchRegressor(nn.Module):
             **kwargs
         )
         self.backbone = self.mil_regressor.backbone
+        self.head = self.mil_regressor.head
 
     def _extract_patch_features(self, patches):
         return self.mil_regressor.extract_patch_features(patches)

@@ -35,6 +35,7 @@ outputs/plant_weight_audit/overlays/
 outputs/runs/*/checkpoints/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/
+outputs/runs/aggregation_*/
 
 # Jupyter Notebook
 .ipynb_checkpoints
