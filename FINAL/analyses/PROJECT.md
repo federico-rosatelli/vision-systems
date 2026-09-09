@@ -66,7 +66,7 @@ The corrected formulation predicts a score for every plant instance and then ave
 
 ### Biological damage features
 
-A classical computer-vision prototype separately estimates enclosed holes and pitting. On a stratified 30-image audit it reached Spearman rho 0.6522 against the expert score. This result is exploratory because the masks lack pixel-level manual validation, edge damage is missed, and its absolute scale differs from the expert scores.
+A corrected classical computer-vision audit separately estimates enclosed holes and pitting using valid plant-region crop coordinates. On a balanced 40-image train/validation set, its preliminary direct damage percentage reaches Spearman rho 0.6425 and Pearson r 0.4564 against the expert score. Manual review found the leaf masks and pitting regions mainly acceptable but rejected the shot-hole detections as unreliable. The combined direct percentage is therefore not validated. Leaf area and pitting remain exploratory features while shot-hole detection requires improvement; edge damage also remains unmeasured.
 
 ## Results that must not be used as final evidence
 
@@ -78,7 +78,7 @@ The current resistance leaderboard must also be regenerated. It includes an `unk
 
 ## Current decision
 
-Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. The next step is validating the direct damaged-leaf-area calculation. A clean OOD study follows, and genotype ranking comes last.
+Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. The direct-damage audit rejected the current shot-hole detector, so its combined percentage cannot yet be used. The next step is improving shot-hole detection and repeating a focused audit before clean OOD evaluation. Genotype ranking comes last.
 
 The compact plant-weight audit evidence is stored in Git, while its per-image masks and overlays are ignored and regenerated locally using the documented command. Regeneration preserves the recorded manual review.
 

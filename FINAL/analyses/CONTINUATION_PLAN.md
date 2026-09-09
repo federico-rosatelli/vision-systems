@@ -129,6 +129,20 @@ Selection decision: freeze area-weighted plant-score pooling. Do not inspect the
 
 ### 4. Evaluate direct damaged-leaf-area percentage
 
+Status: manual review complete; combined direct-damage method rejected in its current form.
+
+Artifacts:
+
+- Configuration: `configs/direct_damage_audit.json`
+- Generator: `src/preprocessing/direct_damage_audit.py`
+- Review table: `outputs/direct_damage_audit/direct_damage_audit.csv`
+- Summary: `outputs/direct_damage_audit/direct_damage_audit_summary.json`
+- Contact sheet: `outputs/direct_damage_audit/direct_damage_contact_sheet.jpg`
+
+The audit contains 20 train and 20 validation images, ten from each damage range, and no test images. Preliminary automatic comparison gives Spearman rho 0.6425 and Pearson r 0.4564. Manual review found the leaf masks and red pitting regions mainly acceptable, but the blue shot-hole detections unreliable. All 40 images were therefore recorded as partial, and the combined direct damage percentage did not meet the acceptance criterion.
+
+Decision: retain leaf area and pitting as exploratory interpretable features, but do not report the current hole counts, hole areas, or combined direct percentage as validated measurements. Improve shot-hole detection and repeat a focused audit before using these outputs for OOD or genotype analysis.
+
 For each plant and image, compute and report separately:
 
 - estimated total leaf area;
@@ -138,6 +152,15 @@ For each plant and image, compute and report separately:
 - pitting-to-hole ratio.
 
 Validate these outputs on manually reviewed masks before interpreting them biologically. Compare the direct percentage with expert scores using MAE after validation-only calibration, Pearson, Spearman, and error plots. Clearly report that edge bites remain uncertain unless a validated edge-reconstruction method is added.
+
+Generate or reproduce the ignored per-image masks and overlays with:
+
+```bash
+python -m src.preprocessing.direct_damage_audit \
+  --config configs/direct_damage_audit.json
+```
+
+After completing every review row, summarize it with the same command plus `--summarize-review`. Regeneration preserves existing manual-review columns by filename.
 
 ### 5. Repeat the OOD study
 

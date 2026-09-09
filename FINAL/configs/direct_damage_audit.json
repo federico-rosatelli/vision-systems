@@ -1,0 +1,24 @@
+{
+  "manifest": "outputs/tables/baseline_manifest_split.csv",
+  "output_dir": "outputs/direct_damage_audit",
+  "sample_size": 40,
+  "seed": 73,
+  "working_width": 1000,
+  "interior_inset_fraction": 0.025,
+  "plant_parameters": {
+    "hue_min": 25,
+    "hue_max": 100,
+    "saturation_min": 35,
+    "value_min": 45,
+    "excess_green_min": 5,
+    "minimum_green_area": 30,
+    "grouping_kernel_fraction": 0.018,
+    "minimum_group_area": 200,
+    "minimum_region_green_area": 200,
+    "patch_padding_fraction": 0.025
+  },
+  "hsv_bounds": {
+    "lower": [35, 40, 40],
+    "upper": [85, 255, 255]
+  }
+}
