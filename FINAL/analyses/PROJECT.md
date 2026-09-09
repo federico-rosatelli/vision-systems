@@ -78,6 +78,8 @@ The current resistance leaderboard must also be regenerated. It includes an `unk
 
 ## Current decision
 
-Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired and a clean 470-bag cache can be generated reproducibly from the frozen manifest. Generated caches are not stored in Git; each team member creates one locally using the command in `analyses/CONTINUATION_PLAN.md`. The next work is validating whether the plant masks provide reliable area weights, followed by controlled aggregation experiments and a clean OOD study. Genotype ranking and presentation come only after those checks pass.
+Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired and a clean 470-bag cache can be generated reproducibly from the frozen manifest. Generated caches are not stored in Git; each team member creates one locally using the command in `analyses/CONTINUATION_PLAN.md`. The balanced 40-image plant-weight audit passed manual review: all masks and weights were marked usable. The next step is the controlled aggregation experiment. A clean OOD study follows model selection, and genotype ranking comes last.
+
+The compact plant-weight audit evidence is stored in Git, while its per-image masks and overlays are ignored and regenerated locally using the documented command. Regeneration preserves the recorded manual review.
 
 See `analyses/CONTINUATION_PLAN.md` for the implementation order.

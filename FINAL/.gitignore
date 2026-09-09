@@ -30,6 +30,8 @@ weights/
 
 # Large and temporary experiment artifacts
 outputs/cache/*.pt
+outputs/plant_weight_audit/masks/
+outputs/plant_weight_audit/overlays/
 outputs/runs/*/checkpoints/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/

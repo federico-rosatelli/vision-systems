@@ -43,7 +43,30 @@ Never copy or use `outputs/cache/dinov3_bags.INVALID_LEAKED.pt`; it is an invali
 
 ### 2. Validate plant masks as area weights
 
-Status: required by the supervisor's chosen aggregation rule.
+Status: complete. The 40-image manual review was approved.
+
+Artifacts:
+
+- Configuration: `configs/plant_weight_audit.json`
+- Generator: `src/preprocessing/plant_weight_audit.py`
+- Review table: `outputs/plant_weight_audit/plant_weight_audit.csv`
+- Summary: `outputs/plant_weight_audit/plant_weight_audit_summary.json`
+- Contact sheet: `outputs/plant_weight_audit/plant_weight_contact_sheet.jpg`
+
+The review CSV, summary JSON, and contact sheet are small and should be committed so the team shares the audit evidence. The per-image files under `outputs/plant_weight_audit/masks/` and `outputs/plant_weight_audit/overlays/` are generated locally and ignored by Git because together they are about 47 MB.
+
+After cloning or pulling, regenerate the ignored per-image files with:
+
+```bash
+cd vision-systems/FINAL
+source .venv/bin/activate
+python -m src.preprocessing.plant_weight_audit \
+  --config configs/plant_weight_audit.json
+```
+
+Regeneration preserves existing manual-review columns in `plant_weight_audit.csv` by matching filenames. It recreates the masks, overlays, contact sheet, and automatic summary fields from the fixed manifest and configuration.
+
+The set contains 20 train and 20 validation images, ten images from each of four damage ranges, and no test images. All 40 frames were detected, all numerical area weights sum to one, and the reviewer marked all 40 masks and area weights as usable. The usable rate is 100%, so the 90% exit criterion is met.
 
 Review a stratified train/validation sample covering different scores, lighting, soil, and plant sizes. For each image record:
 
@@ -55,6 +78,14 @@ Review a stratified train/validation sample covering different scores, lighting,
 - whether mask area is a reasonable approximation of visible plant area.
 
 The current green mask was approved for finding patches, but not as a complete leaf-area mask. In particular, damaged non-green tissue must not disappear from the denominator without being accounted for.
+
+Future reviewers can reproduce the summary after editing the review table with:
+
+```bash
+python -m src.preprocessing.plant_weight_audit \
+  --config configs/plant_weight_audit.json \
+  --summarize-review
+```
 
 ### 3. Run a controlled aggregation experiment
 
