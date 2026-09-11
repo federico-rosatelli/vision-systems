@@ -1,0 +1,61 @@
+{
+  "best_validation_mae": 2.6557952707464043,
+  "checkpoint_epoch": 12,
+  "checkpoint_path": "/home/user/rosatellif1/vision-systems/FINAL/outputs/runs/mil_weighted_seed42/checkpoints/best_model.pth",
+  "mae": 2.5901598930358887,
+  "pairwise_ranking": {
+    "10.0": {
+      "accuracy": 0.974559686888454,
+      "pair_count": 511
+    },
+    "20.0": {
+      "accuracy": 0.9861111111111112,
+      "pair_count": 72
+    },
+    "5.0": {
+      "accuracy": 0.9247219846022241,
+      "pair_count": 1169
+    }
+  },
+  "pearson_r": 0.754639208316803,
+  "rmse": 3.7781900682675515,
+  "run_metadata": {
+    "created_at_utc": "2026-09-11T12:39:35.924437+00:00",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "pandas": "3.0.5",
+      "scikit-learn": "1.9.0",
+      "torch": "2.13.0",
+      "torchvision": "0.28.0"
+    },
+    "git_commit": "500492a7715e67e031e0d59944c75ece96cfd061",
+    "manifest_path": "/home/user/rosatellif1/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
+    "manifest_sha256": "7048425afdb49fcd0fdf94c3c703b012bde008652e9ea2dcb08c7e7b9d3f24a8",
+    "model": {
+      "aggregation": "weighted",
+      "attn_L": 128,
+      "dropout_p": 0.3,
+      "head_width": 256,
+      "image_size": 224,
+      "local_weights_path": "weights/dinov3-vits16-hf",
+      "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m"
+    },
+    "run_name": "mil_weighted_seed42",
+    "schema_version": 1,
+    "training": {
+      "batch_size": 32,
+      "cache_path": "outputs/cache/dinov3_bags.pt",
+      "epochs": 50,
+      "high_quality_only": false,
+      "joint_margin": 5.0,
+      "learning_rate": 0.001,
+      "loss": "huber",
+      "num_workers": 4,
+      "patience": 10,
+      "seed": 42,
+      "training_mode": "regression"
+    }
+  },
+  "spearman_rho": 0.7641127539799848,
+  "test_samples": 73
+}

@@ -1,14 +1,14 @@
 {
-  "created_at_utc": "2026-09-11T12:15:08.138289+00:00",
+  "created_at_utc": "2026-09-11T12:39:35.924437+00:00",
   "dependencies": {
-    "numpy": "2.4.6",
-    "pandas": "2.3.3",
-    "scikit-learn": "1.7.2",
-    "torch": "2.9.1",
-    "torchvision": "0.24.1"
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "torch": "2.13.0",
+    "torchvision": "0.28.0"
   },
-  "git_commit": "1afb31a15eba77c837f4d02a4a7224e6ad2ee766",
-  "manifest_path": "/home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
+  "git_commit": "500492a7715e67e031e0d59944c75ece96cfd061",
+  "manifest_path": "/home/user/rosatellif1/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
   "manifest_sha256": "7048425afdb49fcd0fdf94c3c703b012bde008652e9ea2dcb08c7e7b9d3f24a8",
   "model": {
     "aggregation": "weighted",
@@ -16,7 +16,7 @@
     "dropout_p": 0.3,
     "head_width": 256,
     "image_size": 224,
-    "local_weights_path": null,
+    "local_weights_path": "weights/dinov3-vits16-hf",
     "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m"
   },
   "run_name": "mil_weighted_seed42",

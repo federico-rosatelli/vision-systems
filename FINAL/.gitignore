@@ -36,7 +36,6 @@ outputs/direct_damage_audit/masks/
 outputs/direct_damage_audit/overlays/
 outputs/hole_detection_comparison/overlays/
 outputs/hole_detection_comparison/review_pages/
-outputs/runs/*/checkpoints/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/
 outputs/runs/aggregation_*/
@@ -47,6 +46,7 @@ outputs/runs/aggregation_*/
 # Project specific
 !outputs/figures/
 !outputs/tables/
+!outputs/runs/*/plots/*.png
 .vscode/
 .idea/
 !data/
