@@ -46,12 +46,29 @@ class CSFBPlantPatchDataset(Dataset):
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
         
-        if 'image_path' in row and pd.notna(row['image_path']):
-            img_path = row['image_path']
-        elif 'absolute_path' in row and pd.notna(row['absolute_path']):
-            img_path = row['absolute_path']
-        else:
-            img_path = row['path'] if 'path' in row else row['filename']
+        img_path = None
+        for col in ['image_path', 'absolute_path', 'path', 'filename']:
+            if col in row and pd.notna(row[col]):
+                candidate = str(row[col])
+                if os.path.exists(candidate):
+                    img_path = candidate
+                    break
+        
+        if img_path is None or not os.path.exists(img_path):
+            filename = str(row.get('filename', ''))
+            search_dirs = [
+                "../dataset/Pictures_CFSB_leaf_damage",
+                "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage"
+            ]
+            for s_dir in search_dirs:
+                if os.path.exists(s_dir):
+                    found = list(Path(s_dir).rglob(filename))
+                    if found:
+                        img_path = str(found[0])
+                        break
+
+        if img_path is None or not os.path.exists(img_path):
+            raise FileNotFoundError(f"Image file not found: {row.get('filename')}")
             
         # 1. Load Image
         image_bgr = read_image_oriented(img_path)

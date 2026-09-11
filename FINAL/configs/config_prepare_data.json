@@ -1,6 +1,0 @@
-{
-    "action": "prepare_data",
-    "raw_dir": "/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage",
-    "manifest": "outputs/tables/data_manifest.csv",
-    "audit": "outputs/tables/baseline_audit.json"
-}

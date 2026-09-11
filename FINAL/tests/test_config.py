@@ -26,3 +26,17 @@ def test_default_config_loading():
         cmd = [sys.executable, "main.py", "--help"]
         result = subprocess.run(cmd, capture_output=True, text=True)
         assert result.returncode == 0
+
+def test_grouped_mil_configs_exist_and_parse():
+    """Test that grouped MIL config files exist and can be parsed by main.py."""
+    grouped_configs = [
+        "configs/config_mil_data.json",
+        "configs/config_mil_train.json",
+        "configs/config_mil_eval.json"
+    ]
+    for config_path in grouped_configs:
+        assert os.path.exists(config_path), f"Missing config file: {config_path}"
+        with open(config_path, "r") as f:
+            data = json.load(f)
+        assert "action" in data
+

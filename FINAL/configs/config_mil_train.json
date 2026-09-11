@@ -8,7 +8,7 @@
     "loss": "huber",
     "patience": 10,
     "out_dir": "outputs/runs",
-    "run_name": "mil_abmil_seed42",
+    "run_name": "mil_weighted_seed42",
     "seed": 42,
     "num_workers": 4,
     "image_size": 224,
@@ -19,5 +19,6 @@
     "dropout_p": 0.3,
     "training_mode": "regression",
     "high_quality_only": false,
-    "aggregation": "abmil"
+    "aggregation": "weighted",
+    "joint_margin": 5.0
 }

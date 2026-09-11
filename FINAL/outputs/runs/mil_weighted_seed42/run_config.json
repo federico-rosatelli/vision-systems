@@ -1,0 +1,37 @@
+{
+  "created_at_utc": "2026-09-11T12:15:08.138289+00:00",
+  "dependencies": {
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.7.2",
+    "torch": "2.9.1",
+    "torchvision": "0.24.1"
+  },
+  "git_commit": "1afb31a15eba77c837f4d02a4a7224e6ad2ee766",
+  "manifest_path": "/home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv",
+  "manifest_sha256": "7048425afdb49fcd0fdf94c3c703b012bde008652e9ea2dcb08c7e7b9d3f24a8",
+  "model": {
+    "aggregation": "weighted",
+    "attn_L": 128,
+    "dropout_p": 0.3,
+    "head_width": 256,
+    "image_size": 224,
+    "local_weights_path": null,
+    "model_name": "facebook/dinov3-vits16-pretrain-lvd1689m"
+  },
+  "run_name": "mil_weighted_seed42",
+  "schema_version": 1,
+  "training": {
+    "batch_size": 32,
+    "cache_path": "outputs/cache/dinov3_bags.pt",
+    "epochs": 50,
+    "high_quality_only": false,
+    "joint_margin": 5.0,
+    "learning_rate": 0.001,
+    "loss": "huber",
+    "num_workers": 4,
+    "patience": 10,
+    "seed": 42,
+    "training_mode": "regression"
+  }
+}

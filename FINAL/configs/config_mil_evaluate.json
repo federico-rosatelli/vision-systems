@@ -1,8 +1,0 @@
-{
-    "action": "evaluate_mil",
-    "out_manifest": "outputs/tables/baseline_manifest_split.csv",
-    "model_path": "outputs/runs/mil_abmil_seed42/checkpoints/best_model.pth",
-    "cache_path": "outputs/cache/dinov3_bags.pt",
-    "batch_size": 32,
-    "num_workers": 4
-}
