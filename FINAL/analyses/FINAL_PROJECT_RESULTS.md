@@ -12,7 +12,7 @@ The primary objective is to build a **reproducible computer vision pipeline** th
 
 ## 2. Data Contract & Fixed Dataset Splits
 
-All in-domain development, model selection, and validation strictly adhere to the leakage-safe manifest [`baseline_manifest_split.csv`](file:///home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/outputs/tables/baseline_manifest_split.csv).
+All in-domain development, model selection, and validation strictly adhere to the leakage-safe manifest `outputs/tables/baseline_manifest_split.csv`.
 
 | Dataset Attribute | Value | Verification & Integrity Safeguards |
 | :--- | :---: | :--- |
@@ -99,19 +99,37 @@ Audits evaluating classical computer vision algorithms as exploratory, explainab
 
 ---
 
-## 9. Consolidated JSON Configuration Suite
+## 9. Complete Project JSON Configuration Suite
 
-The workflow is organized into **3 intuitive configuration files**:
+The project configurations are organized into structured JSON files located in `configs/`:
 
-| Configuration File | Main Action (`action`) | Primary Outputs & Checkpoints |
+### A. Core MIL Neural Pipeline Workflows
+| Configuration File | Main Action (`action`) | Purpose & Description |
 | :--- | :--- | :--- |
-| **[`configs/config_mil_data.json`](file:///home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/configs/config_mil_data.json)** | `cache_embeddings` | `outputs/cache/dinov3_bags.pt` |
-| **[`configs/config_mil_train.json`](file:///home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/configs/config_mil_train.json)** | `train_mil` | `outputs/runs/mil_weighted_seed42/checkpoints/best_model.pth` |
-| **[`configs/config_mil_eval.json`](file:///home/fede/Desktop/3Sem/vision_system/vision-systems/FINAL/configs/config_mil_eval.json)** | `evaluate_ood` / `evaluate_mil` | `outputs/tables/ood_evaluation_results.csv` |
+| **`configs/config_mil_data.json`** | `cache_embeddings` | Data preparation, split verification, and DINOv3 feature bag extraction (`outputs/cache/dinov3_bags.pt`). |
+| **`configs/config_mil_train.json`** | `train_mil` | Area-Weighted MIL model training (`mil_weighted_seed42`), supporting `weighted`, `abmil`, and `gated_abmil`. |
+| **`configs/config_mil_eval.json`** | `evaluate_ood` / `evaluate_mil` | In-distribution test set evaluation and zero-shot OOD field trial benchmarking. |
+| **`configs/config.json`** | Master Default | Master fallback configuration used when `python main.py` is launched without parameters. |
+
+### B. Baselines, Matrix Experiments & Pipeline Testing
+| Configuration File | Main Action (`action`) | Purpose & Description |
+| :--- | :--- | :--- |
+| **`configs/config_mse.json`** | `train` | Whole-image baseline regression training using MSE loss. |
+| **`configs/aggregation_experiments.json`** | `run_matrix` | 12-run grid experiment across 4 aggregation types (`weighted`, `uniform`, `abmil`, `gated_abmil`) and 3 seeds. |
+| **`configs/smoke_config.json`** | Fast Smoke Test | Lightweight single-epoch configuration for rapid end-to-end pipeline verification. |
+
+### C. Preprocessing & Classical Computer Vision Audits
+| Configuration File | Audit Module | Purpose & Description |
+| :--- | :--- | :--- |
+| **`configs/frame_audit.json`** | Reference Frame Audit | Audit of metal reference frame cropping across 30 sample images. |
+| **`configs/plant_region_audit.json`** | Plant Proposal Audit | Audit of plant region bounding box proposal across 30 sample images. |
+| **`configs/plant_weight_audit.json`** | Area Weight Audit | Audit of plant mask pixel area weights across 40 sample images. |
+| **`configs/direct_damage_audit.json`** | Direct Damage Audit | Audit of direct CV leaf area, hole, and pitting measurement across 40 images. |
+| **`configs/hole_detection_comparison.json`** | Hole Classification Comparison | Comparison between HSV brightness vs CIELAB soil-aware hole detection across 20 difficult images. |
+| **`configs/biology_audit.json`** | Biological Feature Audit | Audit of morphological biological feature extraction. |
 
 ---
 
 ## 10. Automated Verification & Reproducibility
 
-- **Test Suite (`pytest`)**: **44 passed, 4 skipped in 34.86s**.
-- **Multi-Environment Execution**: `patch_dataset.py` and `evaluate_ood.py` feature dynamic fallback resolution for local paths (`../dataset/...`) and NFS server paths (`/home/nfs/data/...`).
+- **Test Suite (`pytest`)**: **44 passed, 4 skipped in 28.96s**.

@@ -50,3 +50,5 @@ outputs/runs/aggregation_*/
 .vscode/
 .idea/
 !data/
+
+tests/mock_*/
