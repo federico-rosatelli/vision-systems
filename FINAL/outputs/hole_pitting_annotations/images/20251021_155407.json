@@ -1,0 +1,44 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2396.3569972826085,
+          1280.8402683423913
+        ],
+        [
+          2408.735988451087,
+          1280.8402683423913
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          1795.1086956521738,
+          1244.8963994565217
+        ],
+        [
+          1805.3477411684783,
+          1244.8963994565217
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_155407.jpg",
+  "imageData": null,
+  "imageHeight": 3000,
+  "imageWidth": 4000
+}

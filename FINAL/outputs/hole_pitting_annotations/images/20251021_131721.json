@@ -1,0 +1,129 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          1265.8532873376623,
+          2450.494622564935
+        ],
+        [
+          1282.708502435065,
+          2452.6988636363635
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          1307.2671469155846,
+          2206.3311688311687
+        ],
+        [
+          1313.8342126623377,
+          2210.72950487013
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          1968.851461038961,
+          2243.935166396104
+        ],
+        [
+          1977.2879464285713,
+          2243.935166396104
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          2025.9055397727273,
+          2296.8217329545455
+        ],
+        [
+          2033.9564732142858,
+          2296.8217329545455
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          1228.3329951298701,
+          1996.575689935065
+        ],
+        [
+          1239.166497564935,
+          1999.1984577922078
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1310.9248173701299,
+          2222.2275771103896
+        ],
+        [
+          1318.344155844156,
+          2222.0627029220777
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1326.5625,
+          2226.9962459415583
+        ],
+        [
+          1334.0477881493507,
+          2226.9962459415583
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_131721.jpg",
+  "imageData": null,
+  "imageHeight": 4000,
+  "imageWidth": 3000
+}

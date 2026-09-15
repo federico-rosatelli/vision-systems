@@ -1,0 +1,112 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2472.420467342342,
+          1301.0205518018017
+        ],
+        [
+          2482.288147522522,
+          1302.4264498873872
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "pitting",
+      "text": "",
+      "points": [
+        [
+          2458.380841779279,
+          1288.6947494369367
+        ],
+        [
+          2465.651393581081,
+          1289.7909628378377
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2496.509009009009,
+          1286.310529279279
+        ],
+        [
+          2507.1896114864862,
+          1285.5943834459458
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2722.0896677927926,
+          1930.9473536036035
+        ],
+        [
+          2736.0325168918916,
+          1928.2780827702702
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1759.9046311936936,
+          1998.4621340090089
+        ],
+        [
+          1773.1366131756756,
+          1998.0820664414412
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1613.5803772522522,
+          1940.8924549549547
+        ],
+        [
+          1619.731841216216,
+          1941.1915822072071
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_125721.jpg",
+  "imageData": null,
+  "imageHeight": 3000,
+  "imageWidth": 4000
+}

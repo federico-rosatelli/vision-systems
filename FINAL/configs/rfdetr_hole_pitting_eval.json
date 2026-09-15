@@ -1,0 +1,6 @@
+{
+  "dataset_dir": "outputs/hole_pitting_annotations/coco_export_tiled",
+  "checkpoint": "outputs/rfdetr_hole_pitting/checkpoint_best_total.pth",
+  "output_dir": "outputs/rfdetr_hole_pitting",
+  "confidence_threshold": 0.5
+}

@@ -1,0 +1,44 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1754.0118243243242,
+          1940.288921734234
+        ],
+        [
+          1760.0242820945944,
+          1940.288921734234
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1750.614090653153,
+          1924.4123029279278
+        ],
+        [
+          1756.6071931306305,
+          1924.542511261261
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_161301.jpg",
+  "imageData": null,
+  "imageHeight": 3000,
+  "imageWidth": 4000
+}

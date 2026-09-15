@@ -40,6 +40,14 @@ outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/
 outputs/runs/aggregation_*/
 
+# Hole/pitting RF-DETR side project: raw images and checkpoints are large and regenerable
+outputs/hole_pitting_annotations/images/*.jpg
+outputs/hole_pitting_annotations/coco_export/*/*.jpg
+outputs/hole_pitting_annotations/coco_export_tiled/*/*.jpg
+outputs/rfdetr_hole_pitting/*.ckpt
+outputs/rfdetr_hole_pitting/*.pth
+outputs/rfdetr_hole_pitting/events.out.tfevents.*
+
 # Jupyter Notebook
 .ipynb_checkpoints
 

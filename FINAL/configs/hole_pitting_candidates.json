@@ -1,0 +1,8 @@
+{
+  "manifest": "outputs/tables/baseline_manifest_split.csv",
+  "direct_damage_audit_csv": "outputs/direct_damage_audit/direct_damage_audit.csv",
+  "hole_detection_comparison_csv": "outputs/hole_detection_comparison/hole_detection_comparison.csv",
+  "output_dir": "outputs/hole_pitting_annotations",
+  "eval_fraction": 0.2,
+  "seed": 73
+}

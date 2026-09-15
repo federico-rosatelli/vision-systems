@@ -1,0 +1,5 @@
+{
+  "coco_export_dir": "outputs/hole_pitting_annotations/coco_export",
+  "out_dir": "outputs/hole_pitting_annotations/coco_export_tiled",
+  "seed": 73
+}

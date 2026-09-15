@@ -1,0 +1,27 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1593.1922419154228,
+          1858.7317319651738
+        ],
+        [
+          1602.316542288557,
+          1856.4307369402984
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_122322.jpg",
+  "imageData": null,
+  "imageHeight": 3000,
+  "imageWidth": 4000
+}
