@@ -1,0 +1,6 @@
+{
+  "candidates_csv": "outputs/hole_pitting_annotations/annotation_candidates.csv",
+  "images_dir": "outputs/hole_pitting_annotations/images",
+  "train_dir": "outputs/hole_pitting_annotations/coco_export/train",
+  "valid_dir": "outputs/hole_pitting_annotations/coco_export/valid"
+}

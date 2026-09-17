@@ -1,0 +1,95 @@
+{
+  "version": "0.4.43",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2508.8684752747254,
+          2103.3203125
+        ],
+        [
+          2526.3113839285716,
+          2103.3052884615386
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2530.200463598901,
+          2081.3465831043954
+        ],
+        [
+          2540.30520260989,
+          2082.4154361263736
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2485.383756868132,
+          2036.501974587912
+        ],
+        [
+          2494.9776785714284,
+          2038.1846668956043
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          2503.1078296703295,
+          2005.672647664835
+        ],
+        [
+          2511.841088598901,
+          2006.1748798076922
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    },
+    {
+      "label": "shot_hole",
+      "text": "",
+      "points": [
+        [
+          1683.3319024725274,
+          1377.004635989011
+        ],
+        [
+          1689.957503434066,
+          1378.133585164835
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "circle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "20251021_130752.jpg",
+  "imageData": null,
+  "imageHeight": 3000,
+  "imageWidth": 4000
+}
