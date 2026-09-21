@@ -188,11 +188,17 @@ After completing every review row, summarize it with the same command plus `--su
 
 ### 5. Repeat the OOD study
 
+Status: complete (2026-09-21), partially per this spec.
+
 Use the single model selected and frozen in Step 3. Save per-image predictions and preprocessing diagnostics for Rauischholzhausen and DSV.
 
 Report overall results and results stratified by location, BBCH stage, brightness/lighting, soil appearance, score range, and preprocessing success. Compare against constant predictors and the direct damaged-area baseline. A small visual audit should identify whether failures arise from frame detection, plant masks, plant age, illumination, or the learned representation.
 
+Done: re-ran OOD evaluation with the provenance-clean `mil_weighted_seed42` checkpoint. Confirmed numbers in `analyses/FINAL_PROJECT_RESULTS.md` section 7 (Rauischholzhausen MAE 4.33%/Spearman 0.032; DSV MAE 8.11%/Spearman 0.270). **Not done**: the stratified breakdown (by location, BBCH, lighting, soil, score range, preprocessing success) and the visual failure-mode audit described above were not performed — only the aggregate numbers were repeated. If time allows before the report is finalized, this stratified analysis would be the natural next OOD step; otherwise report the aggregate numbers with this gap noted.
+
 ### 6. Perform genotype analysis
+
+Status: partially complete (2026-09-21), simplified from this spec.
 
 Only after the clean in-domain and OOD evaluations are complete:
 
@@ -203,6 +209,8 @@ Only after the clean in-domain and OOD evaluations are complete:
 5. compare predicted rankings with expert-score rankings.
 
 Do not include unknown groups in a resistance leaderboard.
+
+Done: `scripts/build_resistance_leaderboard.py` aggregates predictions to plot level (step 1) with zero `unknown` groups (step 5/final requirement), and separately reports a genotype-level view restricted to the 7 genotypes (of 217) with >=2 plot-group replicates (step 4, partially — replication is required, but not stratified by location/experiment/date/BBCH). See `outputs/tables/plot_resistance_leaderboard.csv` and `outputs/tables/genotype_resistance_subset.csv`, and `analyses/PRE_REPORT_FIXES_PLAN.md` item 5. **Not done**: step 3 (restricting comparisons to compatible location/experiment/date/BBCH conditions), formal uncertainty reporting, and a direct comparison of predicted vs. expert-score genotype rankings. Given the frozen manifest only has 7 genotypes with any replication at all, a fuller analysis along these lines would likely need the larger, less-curated image pool rather than more analysis of the current 470-image set — treat as future work, not a quick follow-up.
 
 ## Completed supporting work
 

@@ -1,3 +1,15 @@
+# LaTeX build artifacts
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.bbl
+report/*.blg
+report/*.pdf
+report/*.synctex.gz
+report/*.fls
+report/*.fdb_latexmk
+
 # Python
 __pycache__/
 *.py[cod]

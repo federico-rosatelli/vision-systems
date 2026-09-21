@@ -74,9 +74,9 @@ A soil-aware hole classifier was compared with the old brightness-only rule on 2
 
 The later cached ABMIL experiment used `outputs/tables/data_manifest_split.csv`, which is not the fixed 470-image manifest. It contains duplicated physical images across splits and records with unknown plot groups. The resulting 612-sample MIL test metrics are contaminated and invalid for model comparison.
 
-The existing OOD results on Rauischholzhausen and DSV are preliminary. They show weak rank correlations of about 0.20 and a large DSV calibration error, but the referenced MIL checkpoint is missing and its training provenance is affected by the invalid manifest. These experiments must be repeated with a clean, frozen model.
+**Resolved (2026-09-21):** the OOD results on Rauischholzhausen and DSV were repeated with the provenance-clean, frozen `mil_weighted_seed42` checkpoint. Confirmed numbers: Rauischholzhausen MAE 4.33%, Spearman 0.032; DSV MAE 8.11%, Spearman 0.270. See `analyses/FINAL_PROJECT_RESULTS.md` section 7 for the full table and `analyses/PRE_REPORT_FIXES_PLAN.md` item 3 for the investigation. Do not cite the ~0.20 Spearman numbers above; they are stale.
 
-The current resistance leaderboard must also be regenerated. It includes an `unknown` group and does not yet provide a valid replicated genotype comparison.
+**Resolved (2026-09-21):** the resistance leaderboard was regenerated from the frozen 470-image manifest at plot level (`scripts/build_resistance_leaderboard.py`, output `outputs/tables/plot_resistance_leaderboard.csv`), with zero `unknown` groups. A genotype-level view is provided only for the 7 genotypes (of 217) with >=2 plot-group replicates (`outputs/tables/genotype_resistance_subset.csv`), explicitly caveated as illustrative, not a validated comparison — the frozen dataset does not have enough replication per genotype for that. See `analyses/PRE_REPORT_FIXES_PLAN.md` item 5.
 
 ## Current decision
 
