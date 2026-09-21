@@ -57,6 +57,7 @@ outputs/rfdetr_hole_pitting/events.out.tfevents.*
 !outputs/figures/
 !outputs/tables/
 !outputs/runs/*/plots/*.png
+!outputs/rfdetr_hole_pitting/example_figures/*.jpg
 .vscode/
 .idea/
 !data/

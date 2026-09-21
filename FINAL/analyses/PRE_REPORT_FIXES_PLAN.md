@@ -149,6 +149,31 @@ Status: investigated (2026-09-21) — blocked on a data-availability limit, need
     unfrozen manifest containing an invalid "unknown" plot group of 443
     images) is superseded and should not be cited in the report.
 
+## 6. Example figures for negative-result sections
+
+Status: complete (2026-09-21).
+
+- Added `scripts/render_rfdetr_hole_pitting_examples.py`, which renders
+  side-by-side ground-truth vs. predicted-box figures for the rejected
+  RF-DETR detector. Output: `outputs/rfdetr_hole_pitting/example_figures/`
+  (2 images, ~1.1 MB total). Example: `20251021_132633_1.jpg` has 1 GT box
+  vs. 166 predicted boxes scattered over soil texture, unrelated to the
+  leaf; `20251021_122353_12.jpg` has 30 GT boxes vs. 204 predictions
+  clustered on the frame crossbar. Both make the near-zero mAP result
+  (0.004) immediately legible as a figure, not just a number.
+  Note: the script defaults to `threshold=0.05`, not the `0.5` listed in
+  `configs/rfdetr_hole_pitting_eval.json` — 0.05 is what actually reproduces
+  the `pred_box_count` values already recorded in
+  `outputs/rfdetr_hole_pitting/rfdetr_hole_pitting_review.csv` with the
+  current `rfdetr` package version.
+- Classical direct-damage audit already has a usable example without new
+  code: `outputs/direct_damage_audit/overlays/20251021_120939_damage.jpg`
+  shows the visual gap directly (expert score 20.25% vs. classical
+  `direct=0.726%`), i.e. the classical shot-hole/pitting rule detects
+  essentially nothing on an image an expert rated as one-fifth damaged.
+- Added `!outputs/rfdetr_hole_pitting/example_figures/` to `.gitignore` so
+  these renders survive the blanket `*.jpg` ignore rule.
+
 ## Out of scope for this plan
 
 - Writing any `report/chapters/*.tex` content.
