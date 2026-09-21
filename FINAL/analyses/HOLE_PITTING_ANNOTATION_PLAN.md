@@ -55,6 +55,57 @@ Decision: report this as a partially-successful, still-exploratory result, not a
 
 Artifacts: `outputs/hole_pitting_annotations/` (candidates, raw annotations, tiled COCO exports; pre-fix buggy tiles preserved at `coco_export_tiled.OLD_BUGGY/`), `outputs/rfdetr_hole_pitting/` (checkpoints, `metrics.csv`, `rfdetr_hole_pitting_review.csv`, `example_figures/`; pre-fix outputs preserved at `outputs/rfdetr_hole_pitting.OLD_BUGGY/`).
 
+### Example figures (post-fix)
+
+Four `outputs/rfdetr_hole_pitting/example_figures/*_gt_vs_pred.jpg` files (side-by-side
+ground truth vs. prediction at confidence threshold 0.5), generated with
+`scripts/render_rfdetr_hole_pitting_examples.py`, chosen to show the range of outcomes
+rather than only the best case:
+
+| Tile | GT boxes | Predicted boxes | What it shows |
+| :--- | :---: | :---: | :--- |
+| `20251021_122655_11` | 5 | 3 | Best case: predictions land on real damage, 2 of 5 missed. |
+| `20251021_151409_9` | 4 | 2 | Partial: the two damage marks on an isolated leaflet are missed; a nearby 2-mark cluster is caught. |
+| `20251021_132633_1` | 1 | 0 | Miss: a single isolated hole produces no detection at threshold 0.5. |
+| `20251021_122353_12` | 30 | 0 | Worst case: a dense row of seedlings with 30 marks produces zero detections. |
+
+Pattern across all four: the model no longer hallucinates boxes on soil/frame texture
+(a categorical improvement over the pre-fix model), but it is under-confident and
+recall-limited — it detects roughly 40-60% of marks in small clusters and misses
+isolated or very dense damage entirely. This is consistent with a model that has
+learned a real but weak signal from too few examples, particularly for the
+minority `pitting` class (see below).
+
+### How many annotated images would this need?
+
+Current annotated set: 40 images (32 train / 8 valid), 342 boxes across two
+imbalanced classes:
+
+| Class | Train boxes | Valid boxes |
+| :--- | :---: | :---: |
+| `shot_hole` | 222 | 42 |
+| `pitting` | 61 | 17 |
+
+`pitting` is the more data-starved class (3.6x fewer train boxes than
+`shot_hole`), which likely drags overall mAP down further.
+
+Rough estimate, based on general small-object detection practice (targets here
+are ~18px, low-contrast against soil) rather than a formal scaling-law fit:
+
+- **~150-300 annotated images with damage per class** (roughly 5-10x the
+  current count, ~1,500-3,000 boxes total, kept balanced between `shot_hole`
+  and `pitting`) to reach a "usable for triage" detector (mAP@50 in the
+  ~30-50% range).
+- **500+ images per class** to reach something reliable enough to use
+  unsupervised (mAP@50 ~70%+).
+
+This is a rough estimate, not a guarantee — annotation consistency and how
+visually separable `pitting` really is from soil texture (even to a human)
+both affect the real data efficiency. Getting to 150-300 well-annotated
+images would be a substantial additional annotation effort on top of the 40
+already done, and is out of scope for this project's remaining time; noted
+here as the concrete next step if this direction were resumed later.
+
 ## Constraints
 
 - Do not touch the frozen 73-image test split.
