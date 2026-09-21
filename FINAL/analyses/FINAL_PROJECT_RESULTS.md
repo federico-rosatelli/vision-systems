@@ -145,6 +145,9 @@ Audits evaluating classical computer vision algorithms as exploratory, explainab
 | **Plant Mask & Area Weight Audit** | 40 images | **100.0% (40/40)** | **Approved** | Plant masks accurately approximate visible leaf area for MIL weights. |
 | **Direct Damage Audit** (Holes + Pitting) | 40 images | **0.0% (0/40)** | *Rejected for Holes* | Leaf masks & pitting are acceptable; automated shot-hole detection yields false positives. |
 | **Soil-Aware Hole Detection Comparison** | 20 images | **0.0% (0/20)** | *Rejected* | Soil similarity thresholds confuse dark brown pitting with exposed soil below. |
+| **RF-DETR Hole/Pitting Detector** | 40 images (32 train / 8 valid) | mAP@50 **3.47%** (was 0.39% before a labeling-pipeline bug fix, see below) | *Weak positive, not production-usable* | Predicted boxes now cluster on real leaf damage instead of soil/frame texture, but detector remains far too weak (~3-10% mAP@50) given only 283 training boxes on ~18px objects. |
+
+**Correction (2026-09-21):** the RF-DETR result above was originally 0.39% mAP@50 and attributed to "too little training data." That was largely wrong: `src/preprocessing/tile_hole_pitting_coco.py` read images with `PIL.Image.open()`, which auto-applies EXIF orientation, while the annotation coordinates are in the raw (un-rotated) pixel frame used everywhere else in this codebase — decorrelating essentially every box from its tile image. Fixing the image I/O to use `cv2` (matching the annotation frame) and retraining improved mAP@50 ~9x (0.39% → 3.47%), with qualitatively sane predictions. See `analyses/HOLE_PITTING_ANNOTATION_PLAN.md` section 5 for the full investigation and before/after evidence.
 
 ---
 

@@ -10,13 +10,22 @@ For each image, nearby boxes are clustered and one tile is cropped per cluster
 (padded so damage occupies a meaningful fraction of the tile), with box coordinates
 remapped into tile-local space. Images with no annotations contribute one random
 negative tile each, for background negatives.
+
+Image I/O uses cv2, not PIL. All 40 annotated source images carry a non-default
+EXIF orientation tag (36 at 180 deg, 2 at 90 deg). Their bbox coordinates are in
+the raw, un-rotated pixel frame (verified by cross-checking annotations against
+both frames visually), matching cv2.imread's default behavior. PIL.Image.open()
+in this environment (Pillow >= ~9) auto-applies EXIF orientation on load, which
+silently decorrelates every box from the tile image content if used here -- this
+was the actual root cause of the earlier near-zero mAP result, not (only) too
+little training data.
 """
 import argparse
 import json
 import random
 from pathlib import Path
 
-from PIL import Image
+import cv2
 
 TILE_SIZE = 640
 PADDING = 200
@@ -99,8 +108,8 @@ def tile_coco(coco_path, images_dir, out_dir, seed):
     tile_image_id, tile_ann_id = 1, 1
 
     for image_id, image_info in images_by_id.items():
-        src = Image.open(Path(images_dir) / image_info["file_name"])
-        img_w, img_h = image_info["width"], image_info["height"]
+        src = cv2.imread(str(Path(images_dir) / image_info["file_name"]))
+        img_h, img_w = src.shape[:2]
         boxes = boxes_by_image.get(image_id, [])
 
         if boxes:
@@ -114,13 +123,14 @@ def tile_coco(coco_path, images_dir, out_dir, seed):
                       min(img_w, cx + half), min(img_h, cy + half))]
 
         for x0, y0, x1, y1 in rects:
-            tile_img = src.crop((int(x0), int(y0), int(x1), int(y1)))
+            x0i, y0i, x1i, y1i = int(x0), int(y0), int(x1), int(y1)
+            tile_img = src[y0i:y1i, x0i:x1i]
             tile_name = f"{Path(image_info['file_name']).stem}_{tile_image_id}.jpg"
-            tile_img.save(out_dir / tile_name)
+            cv2.imwrite(str(out_dir / tile_name), tile_img)
 
             out_images.append({
                 "id": tile_image_id, "file_name": tile_name,
-                "width": tile_img.width, "height": tile_img.height,
+                "width": tile_img.shape[1], "height": tile_img.shape[0],
                 "license": 1, "date_captured": "",
             })
             for b in boxes_in_tile(boxes, x0, y0, x1, y1):

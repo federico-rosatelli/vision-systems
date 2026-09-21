@@ -50,6 +50,11 @@ outputs/rfdetr_hole_pitting/*.ckpt
 outputs/rfdetr_hole_pitting/*.pth
 outputs/rfdetr_hole_pitting/events.out.tfevents.*
 
+# Pre-fix backups kept locally for before/after reference (see
+# analyses/HOLE_PITTING_ANNOTATION_PLAN.md); not meant for the repo.
+outputs/rfdetr_hole_pitting.OLD_BUGGY/
+outputs/hole_pitting_annotations/coco_export_tiled.OLD_BUGGY/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 

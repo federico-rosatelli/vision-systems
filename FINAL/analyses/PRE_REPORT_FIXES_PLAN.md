@@ -154,18 +154,21 @@ Status: investigated (2026-09-21) — blocked on a data-availability limit, need
 Status: complete (2026-09-21).
 
 - Added `scripts/render_rfdetr_hole_pitting_examples.py`, which renders
-  side-by-side ground-truth vs. predicted-box figures for the rejected
-  RF-DETR detector. Output: `outputs/rfdetr_hole_pitting/example_figures/`
-  (2 images, ~1.1 MB total). Example: `20251021_132633_1.jpg` has 1 GT box
-  vs. 166 predicted boxes scattered over soil texture, unrelated to the
-  leaf; `20251021_122353_12.jpg` has 30 GT boxes vs. 204 predictions
-  clustered on the frame crossbar. Both make the near-zero mAP result
-  (0.004) immediately legible as a figure, not just a number.
-  Note: the script defaults to `threshold=0.05`, not the `0.5` listed in
-  `configs/rfdetr_hole_pitting_eval.json` — 0.05 is what actually reproduces
-  the `pred_box_count` values already recorded in
-  `outputs/rfdetr_hole_pitting/rfdetr_hole_pitting_review.csv` with the
-  current `rfdetr` package version.
+  side-by-side ground-truth vs. predicted-box figures for the RF-DETR
+  detector. Original pre-fix examples (`threshold=0.05`, needed to reveal
+  any predictions at all from the buggy model): `20251021_132633_1.jpg` had
+  1 GT box vs. 166 predicted boxes scattered over soil texture;
+  `20251021_122353_12.jpg` had 30 GT boxes vs. 204 predictions clustered on
+  the frame crossbar — both made the near-zero mAP result (0.004)
+  immediately legible as a figure. **Superseded by item 7 below**: after
+  finding and fixing the tiling bug and retraining, these same two example
+  files were re-examined by zooming into the GT boxes (see item 7), which
+  is what actually surfaced the bug. Figures were regenerated at the
+  script's now-restored default `threshold=0.5` using
+  `20251021_122655_11.jpg` (5 GT / 3 predictions, spatially correlated with
+  real leaf damage) and `20251021_132633_1.jpg` (1 GT / 0 predictions — a
+  remaining miss, kept for an honest before/after contrast). Pre-fix
+  renders preserved at `outputs/rfdetr_hole_pitting/example_figures_OLD_BUGGY/`.
 - Classical direct-damage audit already has a usable example without new
   code: `outputs/direct_damage_audit/overlays/20251021_120939_damage.jpg`
   shows the visual gap directly (expert score 20.25% vs. classical
@@ -174,9 +177,56 @@ Status: complete (2026-09-21).
 - Added `!outputs/rfdetr_hole_pitting/example_figures/` to `.gitignore` so
   these renders survive the blanket `*.jpg` ignore rule.
 
+## 7. RF-DETR labeling bug: found, fixed, retrained
+
+Status: complete (2026-09-21). This was discovered while producing the
+example figures for item 6, not planned in advance.
+
+- While zooming into the GT boxes rendered for item 6, every one landed on
+  bare soil, nowhere near a leaf — in the *tiled* dataset used to train/eval
+  RF-DETR. Checking the same annotations against the original, untiled
+  images showed they land correctly on real leaf damage there.
+- Root cause: `src/preprocessing/tile_hole_pitting_coco.py` read images with
+  `PIL.Image.open()`, which auto-applies EXIF orientation on load in this
+  environment's Pillow version (12.3). The annotation bbox coordinates are
+  in the raw, un-rotated pixel frame (same as `cv2.imread`, and the same
+  frame `read_image_oriented()` in `frame_crop.py` already normalizes
+  *from* everywhere else in the codebase). The tiling script cropped
+  EXIF-rotated image content but placed boxes using un-rotated coordinates.
+- Verified this affects **all 40 annotated source images** (36 at 180 deg
+  EXIF orientation, 2 at 90 deg) — confirmed visually for both cases, not
+  assumed from metadata alone (the 90-deg case's declared width/height in
+  the COCO JSON turned out to be inconsistent between the two affected
+  files, so metadata alone couldn't be trusted).
+- Fix: switched `tile_hole_pitting_coco.py` to `cv2` for all image I/O.
+  Verified fix visually (box now lands exactly on a visible hole in the
+  leaf) before proceeding.
+- Regenerated the tiled dataset (`outputs/hole_pitting_annotations/coco_export_tiled/`,
+  71 train / 16 valid tiles — same counts as before) and retrained RF-DETR
+  from scratch (`python -m src.training.train_rfdetr_hole_pitting`, 40
+  epochs). Pre-fix tiles and outputs preserved at `*.OLD_BUGGY` paths for
+  reference.
+- Result: validation mAP@50 improved ~9x on the official eval script
+  (0.39% → 3.47%; peaked at 10.0% mid-training). Predicted boxes now
+  cluster on real leaf damage instead of soil/frame texture (see
+  `outputs/rfdetr_hole_pitting/example_figures/`, regenerated with the
+  fixed model). Still not production-usable (32 training images is a real,
+  separate limitation), but categorically different from the original
+  "model learned nothing" result.
+- Updated `analyses/HOLE_PITTING_ANNOTATION_PLAN.md` section 5 and
+  `analyses/FINAL_PROJECT_RESULTS.md` section 8 with the corrected
+  numbers, root cause, and a methodology note (check for pipeline bugs
+  before attributing a negative result to data scarcity).
+- `pytest tests/ -q` still passes (48 passed) after this change.
+
 ## Out of scope for this plan
 
 - Writing any `report/chapters/*.tex` content.
-- RF-DETR hole/pitting detector and classical direct-damage-%: both already
-  investigated and rejected; no further work planned here (to be written up
-  as negative/exploratory results once report writing starts).
+- Classical direct-damage-% (shot-hole/pitting via brightness/Lab-color
+  heuristics): already investigated and rejected on its own merits (not a
+  pipeline bug); no further work planned here.
+- Further RF-DETR improvement beyond the bug fix in item 7 (e.g. more
+  annotation, architecture changes): the fix corrected the labeling bug and
+  confirmed a real signal exists, but closing the remaining gap to a
+  production-usable detector needs more annotated data, which is out of
+  scope for a pre-report correctness pass.

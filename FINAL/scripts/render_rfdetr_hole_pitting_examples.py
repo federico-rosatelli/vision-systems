@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--checkpoint", default="outputs/rfdetr_hole_pitting/checkpoint_best_total.pth")
     parser.add_argument("--out-dir", default="outputs/rfdetr_hole_pitting/example_figures")
     parser.add_argument("--filenames", nargs="+", default=["20251021_132633_1.jpg", "20251021_122353_12.jpg"])
-    parser.add_argument("--threshold", type=float, default=0.05)
+    parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--max-width", type=int, default=1600)
     args = parser.parse_args()
 
