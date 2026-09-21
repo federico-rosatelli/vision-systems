@@ -39,6 +39,8 @@ outputs/hole_detection_comparison/review_pages/
 outputs/runs/*/tensorboard/
 outputs/runs/smoke_*/
 outputs/runs/aggregation_*/
+outputs/runs/baseline_regression_seed42/
+outputs/runs/baseline_regression_mse_seed42/
 
 # Hole/pitting RF-DETR side project: raw images and checkpoints are large and regenerable
 outputs/hole_pitting_annotations/images/*.jpg
