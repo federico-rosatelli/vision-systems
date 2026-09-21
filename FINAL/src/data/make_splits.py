@@ -38,8 +38,8 @@ def create_splits(manifest_path, output_path, random_state=42, test_size=0.15, v
     # Fallback for NaN bins if any score is out of bounds
     group_stats['score_bin'] = group_stats['score_bin'].fillna(0)
     
-    unique_groups = group_stats['plot_group'].values
-    group_bins = group_stats['score_bin'].values
+    unique_groups = group_stats['plot_group'].to_numpy(dtype=object)
+    group_bins = group_stats['score_bin'].astype(int).to_numpy()
     
     # First split: Train vs Temp (Val + Test)
     temp_size = test_size + val_size

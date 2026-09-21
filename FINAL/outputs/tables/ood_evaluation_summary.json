@@ -3,18 +3,18 @@
     "ood_dataset": "Rauischholzhausen_WG1",
     "folder": "2025_10_07_RSFB-Phenotyping_WG1_JLU",
     "sample_count": 906,
-    "mae": 4.330236434936523,
-    "rmse": 6.266855019248123,
-    "pearson_r": 0.11339694261550903,
+    "mae": 4.330236911773682,
+    "rmse": 6.266854410538102,
+    "pearson_r": 0.11339723318815231,
     "spearman_rho": 0.032195919727424825
   },
   {
     "ood_dataset": "DSV_Trial_1",
     "folder": "2025_09_15_Res4StRes_T1_DSV",
     "sample_count": 897,
-    "mae": 8.105066299438477,
-    "rmse": 9.485931821748219,
-    "pearson_r": 0.30874741077423096,
+    "mae": 8.10506820678711,
+    "rmse": 9.485933028175936,
+    "pearson_r": 0.308747261762619,
     "spearman_rho": 0.27026873819171704
   }
 ]

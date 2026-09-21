@@ -62,11 +62,16 @@ Across-seed validation performance (seeds 42, 43, 44) comparing plant-score aggr
 
 ---
 
-## 6. Selected Production Model Performance (`mil_weighted_seed42`)
+## 6. Selected Production Model Performance (`aggregation_weighted_seed42`)
 
-Detailed metrics for the selected Area-Weighted MIL model checkpoint on the validation set.
+Correction (2026-09-21): this section previously attributed these numbers to
+`mil_weighted_seed42`. They are in fact the **validation-set** metrics of
+`aggregation_weighted_seed42`, the run selected by the 3-seed aggregation
+comparison in Section 5. `mil_weighted_seed42` is a separate, independently
+trained checkpoint with the same config/seed (trained by a different team
+member) and is not the same set of weights.
 
-| Model Metric | Performance | Reference Baseline / Target |
+| Model Metric (validation set) | Performance | Reference Baseline / Target |
 | :--- | :---: | :---: |
 | **Validation MAE (%)** | **2.6670** | Constant Mean MAE: 5.45% |
 | **Validation RMSE (%)** | **3.5830** | Constant Mean RMSE: 6.85% |
@@ -74,16 +79,60 @@ Detailed metrics for the selected Area-Weighted MIL model checkpoint on the vali
 | **Spearman Rank Correlation ($\rho$)** | **0.8553** | - |
 | **Pairwise Ranking Accuracy (Gap ≥ 5%)** | **0.9400 (94.0%)** | Pairwise severity ranking |
 
+### Held-out test-set performance (previously missing from this report)
+
+The 73-image closed test split was evaluated for the first time against the
+current codebase on 2026-09-21 (`main.py --action evaluate_mil` against
+`aggregation_weighted_seed42/checkpoints/best_model.pth`). There is a real,
+previously unreported gap between validation and held-out test performance:
+
+| Model Metric (test set, N=73) | `aggregation_weighted_seed42` | `mil_weighted_seed42` (independent re-train, same config) |
+| :--- | :---: | :---: |
+| **MAE (%)** | **2.5995** | 2.5902 |
+| **RMSE (%)** | **3.7835** | 3.7782 |
+| **Pearson Correlation ($r$)** | **0.7628** | 0.7546 |
+| **Spearman Rank Correlation ($\rho$)** | **0.7653** | 0.7641 |
+| **Pairwise Ranking Accuracy (Gap ≥ 5%)** | **0.9247 (92.5%)** | 0.9247 (92.5%) |
+
+Both independently trained checkpoints agree closely with each other on the
+test set (MAE within 0.01, Spearman within 0.001), which is a good
+reproducibility signal. However, both show a materially lower Spearman
+(~0.765) and Pearson (~0.76) on the true held-out test set than on validation
+(~0.855 / ~0.859). MAE/RMSE hold up well (test is actually slightly better
+than validation on MAE), but the held-out *rank correlation* is lower than
+the validation number that has been used as the headline result so far.
+
+A bootstrap check (5,000 resamples of the 73 test predictions,
+`aggregation_weighted_seed42`) puts the test-set Spearman's 95% CI at
+**[0.62, 0.86]** — the validation Spearman (0.855) falls at the upper edge of
+this interval. With only 73 test samples, the val→test drop is plausibly
+consistent with sampling noise rather than clear evidence of overfitting via
+model/epoch selection, though it cannot rule overfitting out either. The
+report should cite the test-set numbers (point estimate) as the primary
+generalization claim, and should state the CI so the val→test gap reads as
+an acknowledged small-sample uncertainty rather than an unexplained drop.
+
 ---
 
 ## 7. Zero-Shot Out-of-Distribution (OOD) Field Benchmark
 
-Zero-shot evaluation of `mil_weighted_seed42` on unseen field trial datasets.
+Zero-shot evaluation of `mil_weighted_seed42` on unseen field trial datasets. Re-run
+2026-09-21 against the provenance-clean checkpoint (manifest SHA-256
+`7048425afdb49fcd0fdf94c3c703b012bde008652e9ea2dcb08c7e7b9d3f24a8`, matching the
+current frozen `baseline_manifest_split.csv`) after fixing an unrelated `create_splits`
+dtype bug and a missing `argparse` import in `evaluate_ood.py`. This supersedes the
+earlier preliminary numbers, which were flagged stale in `CONTINUATION_PLAN.md`.
 
 | OOD Benchmark Dataset | Folder Identifier | Valid Samples ($N$) | MAE (%) | RMSE (%) | Pearson $r$ | Spearman $\rho$ |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Rauischholzhausen WG1** | `2025_10_07_RSFB-Phenotyping_WG1_JLU` | **906** | **4.29%** | **5.83%** | **0.293** | **0.199** |
-| **DSV Trial 1** | `2025_09_15_Res4StRes_T1_DSV` | **897** | **15.60%** | **17.24%** | **0.207** | **0.193** |
+| **Rauischholzhausen WG1** | `2025_10_07_RSFB-Phenotyping_WG1_JLU` | **906** | **4.33%** | **6.27%** | **0.113** | **0.032** |
+| **DSV Trial 1** | `2025_09_15_Res4StRes_T1_DSV` | **897** | **8.11%** | **9.49%** | **0.309** | **0.270** |
+
+Compared to the earlier preliminary run, DSV Trial 1 MAE improved substantially
+(15.60% → 8.11%) and its Spearman correlation improved (0.193 → 0.270), while
+Rauischholzhausen's already-weak rank correlation dropped further (0.199 → 0.032).
+Overall conclusion is unchanged: the model generalizes poorly to unseen field trials,
+and this confirmed (non-preliminary) result should be used in the report.
 
 ---
 
