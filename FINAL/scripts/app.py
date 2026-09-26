@@ -4,6 +4,7 @@ Interactive dashboard for historical benchmarks, resistance leaderboards,
 live multi-stage inference across all trained models, and project learnings.
 """
 
+import os
 import sys
 from pathlib import Path
 import json
@@ -27,7 +28,31 @@ TABLES_DIR = OUTPUTS_DIR / "tables"
 RUNS_DIR = OUTPUTS_DIR / "runs"
 RFDETR_DIR = OUTPUTS_DIR / "rfdetr_hole_pitting"
 RFDETR_EXAMPLES_DIR = RFDETR_DIR / "example_figures"
-DATASET_DIR = Path("/home/fede/Desktop/3Sem/vision_system/vision-systems/dataset/Pictures_CFSB_leaf_damage/RSFB-Phenotyping_training_set/RSFB-Phenotyping_training_set")
+
+
+def _resolve_dataset_dir() -> Path:
+    """Locate the read-only raw image dataset without hardcoding one collaborator's machine.
+
+    Checked in order: an explicit CSFB_DATASET_DIR env var, the repo-relative sibling
+    layout, and the shared NFS mount other configs in this project already use
+    (see configs/config.json's `raw_dir`).
+    """
+    candidates = [
+        os.environ.get("CSFB_DATASET_DIR"),
+        ROOT_DIR.parent / "dataset" / "Pictures_CFSB_leaf_damage"
+        / "RSFB-Phenotyping_training_set" / "RSFB-Phenotyping_training_set",
+        Path("/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage")
+        / "RSFB-Phenotyping_training_set" / "RSFB-Phenotyping_training_set",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_dir():
+            return Path(candidate)
+    # Fall back to the shared-mount path even if missing locally; the UI already
+    # handles a missing image gracefully (falls through to "not found").
+    return Path("/home/nfs/data/nvme_datasets/Pictures_CFSB_leaf_damage") / "RSFB-Phenotyping_training_set" / "RSFB-Phenotyping_training_set"
+
+
+DATASET_DIR = _resolve_dataset_dir()
 
 # Streamlit Page Configuration
 st.set_page_config(
@@ -70,16 +95,6 @@ st.markdown(
         font-weight: 700;
         color: #0F172A;
     }
-    .badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .badge-success { background-color: #DCFCE7; color: #166534; }
-    .badge-warning { background-color: #FEF9C3; color: #854D0E; }
-    .badge-info { background-color: #DBEAFE; color: #1E40AF; }
     .card-box {
         background-color: #FFFFFF;
         border: 1px solid #E5E7EB;
@@ -87,6 +102,16 @@ st.markdown(
         padding: 20px;
         margin-bottom: 16px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    div[data-testid="stRadio"] > div[role="radiogroup"] {
+        gap: 0.4rem;
+    }
+    div[data-testid="stRadio"] label {
+        background-color: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 6px 14px;
+        margin-bottom: 0;
     }
     </style>
     """,
@@ -239,15 +264,114 @@ def generate_attention_heatmap(frame_bgr: np.ndarray, regions: list, weights: li
     return blended
 
 
-# ==============================================================================
-# SIDEBAR NAVIGATION & MODEL SELECTION
-# ==============================================================================
-st.sidebar.image("https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/Python-Dark.svg", width=48)
-st.sidebar.title("CSFB Phenotyping")
-st.sidebar.markdown("**Vision Systems Lab (MA-INF 4308)**")
-st.sidebar.markdown("---")
+# RF-DETR was trained on a 2-class COCO export (categories.json: 1=shot_hole, 2=pitting).
+# Its predictions use 0-indexed, contiguous class ids sorted by that original category id,
+# i.e. 0 -> shot_hole, 1 -> pitting (see scripts/render_rfdetr_hole_pitting_examples.py).
+RFDETR_CLASS_NAMES = ["shot_hole", "pitting"]
+RFDETR_CLASS_COLORS_BGR = {
+    "shot_hole": (0, 128, 255),   # orange
+    "pitting": (255, 0, 200),     # magenta
+}
 
-nav_choice = st.sidebar.radio(
+
+@st.cache_resource
+def load_rfdetr_detector():
+    """Load the fine-tuned RF-DETR hole/pitting checkpoint once per session, if present."""
+    ckpt_path = RFDETR_DIR / "checkpoint_best_total.pth"
+    if not ckpt_path.exists():
+        return None
+    try:
+        from rfdetr import RFDETRNano
+        return RFDETRNano(pretrain_weights=str(ckpt_path))
+    except Exception as e:
+        st.warning(f"Could not load the RF-DETR detector: {e}")
+        return None
+
+
+@st.cache_data(show_spinner=False)
+def run_rfdetr_tiled(_detector, image_bgr: np.ndarray, tile_size: int = 640, overlap: float = 0.15, threshold: float = 0.4):
+    """Run RF-DETR over overlapping tile_size x tile_size tiles of a full-resolution image.
+
+    RF-DETR was trained on 640x640 crops around damage clusters (see
+    analyses/HOLE_PITTING_ANNOTATION_PLAN.md): a single shot-hole is only ~18px wide, so
+    feeding it the whole multi-thousand-pixel frame directly would shrink lesions below
+    visibility, exactly like the whole-image baseline's failure mode in Stage 3. Tiling with
+    overlap keeps every region at native resolution; overlapping detections are merged with
+    NMS. The leading underscore on `_detector` tells st.cache_data to skip hashing the model.
+    """
+    h, w = image_bgr.shape[:2]
+    stride = max(1, int(tile_size * (1 - overlap)))
+    boxes_xyxy, scores, class_ids = [], [], []
+
+    y = 0
+    while True:
+        y_end = min(y + tile_size, h)
+        y_start = max(0, y_end - tile_size)
+        x = 0
+        while True:
+            x_end = min(x + tile_size, w)
+            x_start = max(0, x_end - tile_size)
+            tile = image_bgr[y_start:y_end, x_start:x_end]
+            detections = _detector.predict(tile, threshold=threshold)
+            for i, box in enumerate(detections.xyxy):
+                bx1, by1, bx2, by2 = box
+                boxes_xyxy.append([bx1 + x_start, by1 + y_start, bx2 + x_start, by2 + y_start])
+                conf = detections.confidence[i] if detections.confidence is not None else 1.0
+                cid = detections.class_id[i] if detections.class_id is not None else -1
+                scores.append(float(conf))
+                class_ids.append(int(cid))
+            if x_end >= w:
+                break
+            x += stride
+        if y_end >= h:
+            break
+        y += stride
+
+    if not boxes_xyxy:
+        return [], [], []
+
+    boxes_xywh = [[x1, y1, x2 - x1, y2 - y1] for x1, y1, x2, y2 in boxes_xyxy]
+    keep = cv2.dnn.NMSBoxes(boxes_xywh, scores, score_threshold=threshold, nms_threshold=0.4)
+    keep = keep.flatten().tolist() if len(keep) else []
+    return (
+        [boxes_xyxy[i] for i in keep],
+        [scores[i] for i in keep],
+        [class_ids[i] for i in keep],
+    )
+
+
+def draw_rfdetr_detections(image_bgr: np.ndarray, boxes_xyxy, class_ids) -> np.ndarray:
+    """Draw class-colored boxes (see RFDETR_CLASS_COLORS_BGR) plus a legend."""
+    vis = image_bgr.copy()
+    for (x1, y1, x2, y2), cid in zip(boxes_xyxy, class_ids):
+        class_name = RFDETR_CLASS_NAMES[cid] if 0 <= cid < len(RFDETR_CLASS_NAMES) else "unknown"
+        color = RFDETR_CLASS_COLORS_BGR.get(class_name, (0, 200, 0))
+        cv2.rectangle(vis, (int(x1), int(y1)), (int(x2), int(y2)), color, max(2, vis.shape[1] // 800))
+    legend_x = 10
+    for name in RFDETR_CLASS_NAMES:
+        color = RFDETR_CLASS_COLORS_BGR[name]
+        cv2.rectangle(vis, (legend_x, 10), (legend_x + 18, 28), color, -1)
+        cv2.putText(vis, name, (legend_x + 24, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        legend_x += 24 + 15 * len(name) + 30
+    return vis
+
+
+# ==============================================================================
+# SIDEBAR BRANDING (navigation and model selection now live in the main area)
+# ==============================================================================
+st.sidebar.markdown("## 🌱 CSFB Phenotyping")
+st.sidebar.caption("Vision Systems Lab · MA-INF 4308")
+st.sidebar.markdown(
+    "Weakly-supervised damage scoring for cabbage stem flea beetle feeding on "
+    "young oilseed rape, built for the Res4StRes project."
+)
+st.sidebar.markdown("---")
+st.sidebar.caption("© 2026 University of Bonn & JLU Gießen · Res4StRes Project")
+
+# ==============================================================================
+# TOP NAVIGATION
+# ==============================================================================
+nav_choice = st.radio(
     "Navigation",
     [
         "🌿 Project Overview",
@@ -255,11 +379,10 @@ nav_choice = st.sidebar.radio(
         "🔬 Live Inference",
         "💡 Learnings & Future Outlook",
     ],
-    index=2,
+    horizontal=True,
+    label_visibility="collapsed",
 )
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🤖 Active Model Selection")
+st.divider()
 
 model_registry = {
     "mil_weighted_seed42": {
@@ -319,24 +442,6 @@ model_registry = {
         "desc": "Direct lesion detector predicting bounding boxes for individual shot-holes and pitting spots.",
     },
 }
-
-model_choice = st.sidebar.selectbox(
-    "Choose Model Architecture",
-    options=list(model_registry.keys()),
-    format_func=lambda x: model_registry[x]["label"],
-)
-
-selected_meta = model_registry[model_choice]
-st.sidebar.info(
-    f"**Type:** {selected_meta['type']}\n\n"
-    f"**Backbone:** {selected_meta['backbone']}\n\n"
-    f"**Benchmark:** {selected_meta['metric']}\n\n"
-    f"*{selected_meta['desc']}*"
-)
-
-st.sidebar.markdown("---")
-st.sidebar.caption("© 2026 University of Bonn & JLU Gießen | Res4StRes Project")
-
 
 # ==============================================================================
 # 1. PROJECT OVERVIEW
@@ -463,7 +568,7 @@ elif nav_choice == "📊 Historical Results":
                 },
                 inplace=True,
             )
-            st.dataframe(display_ood, use_container_width=True, hide_index=True)
+            st.dataframe(display_ood, width="stretch", hide_index=True)
 
             fig = go.Figure()
             fig.add_trace(
@@ -494,7 +599,7 @@ elif nav_choice == "📊 Historical Results":
                 template="plotly_white",
                 height=380,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             st.warning(
                 "**Key Insight:** While MAE remains relatively bounded (4.33% to 8.11%), rank correlation degrades "
@@ -537,7 +642,7 @@ elif nav_choice == "📊 Historical Results":
                     },
                     inplace=True,
                 )
-                st.dataframe(g_display, use_container_width=True, hide_index=True)
+                st.dataframe(g_display, width="stretch", hide_index=True)
 
                 fig_g = px.bar(
                     genotype_df.sort_values("avg_pred_damage", ascending=True),
@@ -552,7 +657,7 @@ elif nav_choice == "📊 Historical Results":
                     height=340,
                 )
                 fig_g.update_layout(coloraxis_showscale=False)
-                st.plotly_chart(fig_g, use_container_width=True)
+                st.plotly_chart(fig_g, width="stretch")
             else:
                 st.info("Genotype subset leaderboard not found.")
 
@@ -588,7 +693,7 @@ elif nav_choice == "📊 Historical Results":
                             "split",
                         ]
                     ],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                     height=350,
                 )
@@ -612,7 +717,7 @@ elif nav_choice == "📊 Historical Results":
                     x1=filtered_plots["avg_true_damage"].max(),
                     y1=filtered_plots["avg_true_damage"].max(),
                 )
-                st.plotly_chart(fig_scatter, use_container_width=True)
+                st.plotly_chart(fig_scatter, width="stretch")
 
     # Sub-tab: MIL Aggregation Matrix
     with tab_aggregation:
@@ -647,7 +752,7 @@ elif nav_choice == "📊 Historical Results":
                         "val_spearman": "Val Spearman ρ (Mean ± SD)",
                     }
                 )
-                st.dataframe(s_disp, use_container_width=True, hide_index=True)
+                st.dataframe(s_disp, width="stretch", hide_index=True)
 
             with col_a2:
                 fig_agg = px.bar(
@@ -662,7 +767,7 @@ elif nav_choice == "📊 Historical Results":
                     height=300,
                 )
                 fig_agg.update_layout(showlegend=False)
-                st.plotly_chart(fig_agg, use_container_width=True)
+                st.plotly_chart(fig_agg, width="stretch")
 
         if agg_runs_df is not None:
             st.markdown("#### 🔬 Detailed Per-Run Experimental Log")
@@ -681,7 +786,7 @@ elif nav_choice == "📊 Historical Results":
                             "pairwise_accuracy_gap5",
                         ]
                     ],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -708,7 +813,7 @@ elif nav_choice == "📊 Historical Results":
             "Spearman ρ": [0.271, -0.108, 0.855, 0.765, 0.000],
             "Pearson r": [0.239, -0.097, 0.859, 0.763, 0.000],
         })
-        st.dataframe(base_data, use_container_width=True, hide_index=True)
+        st.dataframe(base_data, width="stretch", hide_index=True)
 
         fig_base = px.bar(
             base_data,
@@ -720,7 +825,7 @@ elif nav_choice == "📊 Historical Results":
             template="plotly_white",
             height=360,
         )
-        st.plotly_chart(fig_base, use_container_width=True)
+        st.plotly_chart(fig_base, width="stretch")
 
         st.error(
             "🚨 **Core Experimental Finding:** Whole-image downsampling leads to a negative test rank correlation (Spearman -0.108), "
@@ -794,7 +899,7 @@ elif nav_choice == "📊 Historical Results":
                 col = cols_fig[fig_idx % 2]
                 with col:
                     img = Image.open(img_path)
-                    st.image(img, caption=f"{meta['title']} ({fname})", use_container_width=True)
+                    st.image(img, caption=f"{meta['title']} ({fname})", width="stretch")
                     st.markdown(
                         f"**{meta['gt']}** vs. **{meta['pred']}**\n\n"
                         f"*{meta['notes']}*"
@@ -809,16 +914,43 @@ elif nav_choice == "📊 Historical Results":
 elif nav_choice == "🔬 Live Inference":
     st.markdown('<div class="main-header">Live Multi-Stage Inference Engine</div>', unsafe_allow_html=True)
     st.markdown(
-        f'<div class="sub-header">Interactive testing using <strong>{selected_meta["label"]}</strong> across Classical CV and Deep Vision</div>',
+        '<div class="sub-header">Run the full classical CV + deep learning pipeline on a field image</div>',
         unsafe_allow_html=True,
     )
+
+    st.markdown("#### 1. Choose a model")
+    model_categories = {
+        "Production": ["mil_weighted_seed42"],
+        "MIL comparisons": [
+            "mil_abmil_seed42",
+            "patch_regression_seed42",
+            "patch_joint_seed42",
+            "patch_joint_sampled_seed42",
+        ],
+        "Whole-image baselines": ["baseline_regression_seed42", "baseline_regression_mse_seed42"],
+        "Lesion detection": ["rfdetr_hole_pitting"],
+    }
+    col_family, col_model = st.columns([1, 2])
+    with col_family:
+        model_family = st.radio("Model family", list(model_categories.keys()))
+    with col_model:
+        model_choice = st.selectbox(
+            "Model",
+            options=model_categories[model_family],
+            format_func=lambda x: model_registry[x]["label"],
+        )
+        selected_meta = model_registry[model_choice]
+        st.caption(f"{selected_meta['type']} · {selected_meta['backbone']} · {selected_meta['metric']}")
+        with st.expander("What is this model?"):
+            st.write(selected_meta["desc"])
+    st.divider()
 
     manifest_df = load_csv(TABLES_DIR / "baseline_manifest_split.csv")
     bag_cache = load_embedding_cache(OUTPUTS_DIR / "cache" / "dinov3_bags.pt")
     active_model, active_model_info = load_trained_model(model_choice)
 
     # 1. INPUT SELECTION
-    st.markdown("### 1. Select or Upload Field Image")
+    st.markdown("### 2. Select or upload a field image")
 
     input_mode = st.radio(
         "Image Input Source",
@@ -872,6 +1004,17 @@ elif nav_choice == "🔬 Live Inference":
 
     if source_to_process is not None:
         if st.button("🚀 Run Complete Phenotyping & Damage Pipeline", type="primary"):
+            # Remember that the pipeline has been run for this exact image, in
+            # session_state, so the results (including the Stage 4 gallery below)
+            # stay visible across reruns caused by interacting with widgets further
+            # down the page (e.g. the Stage 4 tile selector), instead of requiring
+            # the button to be clicked again just to keep seeing them. Results are
+            # keyed to the current filename so switching images hides stale output
+            # until "Run Pipeline" is clicked again for the new image.
+            st.session_state["live_inference_ran_for"] = selected_filename
+
+        has_run = st.session_state.get("live_inference_ran_for") == selected_filename
+        if has_run:
             with st.spinner("Processing image through Multi-Stage Vision Pipeline..."):
                 raw_bgr = read_image_from_upload_or_path(source_to_process)
                 h_orig, w_orig = raw_bgr.shape[:2]
@@ -918,13 +1061,13 @@ elif nav_choice == "🔬 Live Inference":
                     st.image(
                         cv2.cvtColor(resized_overlay, cv2.COLOR_BGR2RGB),
                         caption=f"Full Field Image (Status: {detection.status}, Conf: {detection.confidence:.2f})",
-                        use_container_width=True,
+                        width="stretch",
                     )
                 with col_f2:
                     st.image(
                         cv2.cvtColor(interior_crop, cv2.COLOR_BGR2RGB),
                         caption=f"Rectified Inside-Frame Crop (0.1 m² ROI) [{interior_crop.shape[1]}x{interior_crop.shape[0]} px]",
-                        use_container_width=True,
+                        width="stretch",
                     )
 
                 # --------------------------------------------------------------
@@ -983,13 +1126,13 @@ elif nav_choice == "🔬 Live Inference":
                     st.image(
                         cv2.cvtColor(plant_overlay, cv2.COLOR_BGR2RGB),
                         caption=f"Plant Proposals (Red Boxes) & Vegetation Mask (Magenta) [{len(regions)} Plants]",
-                        use_container_width=True,
+                        width="stretch",
                     )
                 with col_cv2:
                     st.image(
                         veg_mask,
                         caption="Binary Vegetation Mask (Connected Components Filtered)",
-                        use_container_width=True,
+                        width="stretch",
                     )
 
                 total_veg_pixels = int(np.count_nonzero(veg_mask))
@@ -1014,7 +1157,7 @@ elif nav_choice == "🔬 Live Inference":
                     for idx_p, p_info in enumerate(plant_patches[:8]):
                         col_g = cols_gallery[idx_p % len(cols_gallery)]
                         with col_g:
-                            st.image(p_info["bio_vis_rgb"], caption=f"Plant #{p_info['id']} ({p_info['area']} px)", use_container_width=True)
+                            st.image(p_info["bio_vis_rgb"], caption=f"Plant #{p_info['id']} ({p_info['area']} px)", width="stretch")
                             bio = p_info["bio"]
                             st.caption(f"Holes: {bio['hole_count']} | Pits: {bio['pitting_count']}")
 
@@ -1130,7 +1273,7 @@ elif nav_choice == "🔬 Live Inference":
                         st.image(
                             cv2.cvtColor(blended_heatmap, cv2.COLOR_BGR2RGB),
                             caption="Attention / Weight Heatmap Overlay (Jet Colormap)",
-                            use_container_width=True,
+                            width="stretch",
                         )
                     with col_h2:
                         df_weights = pd.DataFrame({
@@ -1149,61 +1292,80 @@ elif nav_choice == "🔬 Live Inference":
                             height=320,
                         )
                         fig_w.update_layout(coloraxis_showscale=False)
-                        st.plotly_chart(fig_w, use_container_width=True)
+                        st.plotly_chart(fig_w, width="stretch")
 
-                # --------------------------------------------------------------
-                # STAGE 4: RF-DETR LESION DETECTION
-                # --------------------------------------------------------------
-                st.markdown("---")
-                st.markdown("### 🎯 Stage 4: Fine-Grained Lesion Detection (RF-DETR)")
+        if has_run:
+            # ------------------------------------------------------------------------
+            # STAGE 4: RF-DETR LESION DETECTION (runs on THIS image, not a fixed example)
+            # ------------------------------------------------------------------------
+            # Gated on has_run (not st.button(...) directly): a plain st.button() only
+            # reads True on the single rerun right after it's clicked, so gating this
+            # section on it directly would make it vanish on the next rerun (e.g. from
+            # touching any widget below). has_run persists in session_state instead.
+            st.markdown("---")
+            st.markdown("### 🎯 Stage 4: Fine-Grained Lesion Detection (RF-DETR)")
+            st.caption(
+                "Runs the fine-tuned RF-DETR Nano detector directly on the rectified frame above, "
+                "tiling it into overlapping 640x640 windows so small lesions stay at native resolution."
+            )
+
+            detector = load_rfdetr_detector()
+            if detector is None:
+                st.warning(
+                    "RF-DETR checkpoint not found at "
+                    f"`{RFDETR_DIR / 'checkpoint_best_total.pth'}` — live detection is unavailable. "
+                    "See the reference examples below instead."
+                )
+            else:
+                rf_threshold = st.slider(
+                    "Detection confidence threshold", min_value=0.1, max_value=0.9, value=0.4, step=0.05,
+                    help="RF-DETR was evaluated at 0.5; lower it to see more (noisier) candidate detections.",
+                )
+                boxes_xyxy, scores, class_ids = run_rfdetr_tiled(
+                    detector, interior_crop, tile_size=640, overlap=0.15, threshold=rf_threshold
+                )
+                rf_vis = draw_rfdetr_detections(interior_crop, boxes_xyxy, class_ids)
+
+                n_holes = sum(1 for c in class_ids if c == 0)
+                n_pitting = sum(1 for c in class_ids if c == 1)
+                col_rf1, col_rf2, col_rf3 = st.columns(3)
+                col_rf1.metric("Shot-holes detected", n_holes)
+                col_rf2.metric("Pitting spots detected", n_pitting)
+                col_rf3.metric("Total boxes", len(boxes_xyxy))
+
+                st.image(
+                    cv2.cvtColor(rf_vis, cv2.COLOR_BGR2RGB),
+                    caption=f"Live RF-DETR detections on this image (confidence ≥ {rf_threshold:.2f})",
+                    width="stretch",
+                )
                 st.caption(
-                    "Fine-grained object detection of feeding shot-holes and pitting lesions using fine-tuned RF-DETR Nano."
+                    "This is a weak, exploratory detector (val mAP@50 ≈ 3.47%, trained on only 40 annotated "
+                    "images / 342 boxes) — expect missed lesions and occasional false positives, especially "
+                    "for the more data-starved `pitting` class. Treat counts as illustrative, not validated."
                 )
 
-                rf_matches = [
-                    f
-                    for f in [
-                        "20251021_122655_11_gt_vs_pred.jpg",
-                        "20251021_151409_9_gt_vs_pred.jpg",
-                        "20251021_132633_1_gt_vs_pred.jpg",
-                        "20251021_122353_12_gt_vs_pred.jpg",
-                    ]
-                    if selected_filename and selected_filename.replace(".jpg", "") in f
-                ]
-
-                if rf_matches:
-                    rf_fig_path = RFDETR_EXAMPLES_DIR / rf_matches[0]
-                    st.success(f"🎯 **Matched Annotated Tile:** This image has a corresponding validation tile: `{rf_matches[0]}`")
+            with st.expander("🖼️ Reference: manually annotated ground-truth validation tiles"):
+                st.caption(
+                    "Fixed example tiles from the held-out validation set, shown for comparison — these are "
+                    "NOT the image selected above, just a reference for what correct detections look like."
+                )
+                tile_options = {
+                    "Cluster Best Case (20251021_122655_11)": "20251021_122655_11_gt_vs_pred.jpg",
+                    "Damage on Leaflet (20251021_151409_9)": "20251021_151409_9_gt_vs_pred.jpg",
+                    "Single Isolated Hole (20251021_132633_1)": "20251021_132633_1_gt_vs_pred.jpg",
+                    "Dense Seedling / Under-Recall (20251021_122353_12)": "20251021_122353_12_gt_vs_pred.jpg",
+                }
+                chosen_tile_label = st.selectbox(
+                    "Select reference tile", list(tile_options.keys()), key="rfdetr_tile_selector"
+                )
+                chosen_tile_file = tile_options[chosen_tile_label]
+                tile_path = RFDETR_EXAMPLES_DIR / chosen_tile_file
+                if tile_path.exists():
                     st.image(
-                        Image.open(rf_fig_path),
-                        caption=f"RF-DETR Fine-Grained Detection: Ground Truth (Left) vs. Predictions (Right) [Threshold = 0.5] ({rf_matches[0]})",
-                        use_container_width=True,
+                        Image.open(tile_path),
+                        caption=f"RF-DETR: Ground Truth (Left) vs Predicted (Right) | {chosen_tile_label}",
+                        width="stretch",
                     )
-                else:
-                    st.info(
-                        "🔍 **Why RF-DETR Requires 640x640 px High-Resolution Tiles:**\n\n"
-                        "- **Scale Disparity:** The raw field photographs measure ~**4000 x 3000 pixels**, whereas a single flea beetle feeding hole (*shot-hole*) averages only **18 x 18 pixels**.\n"
-                        "- **Resolution Loss on Full Frames:** RF-DETR scales its visual inputs to 384x384 or 640x640 pixels. Downsampling the full 4000x3000 frame compresses each hole to **under 2 pixels**, completely eliminating the visual signal and yielding 0.0 mAP.\n"
-                        "- **High-Res Tiling Solution:** To preserve physical lesion resolution, the pipeline crops **640x640 px high-res tiles** around leaf damage clusters. This maintains lesion visibility (~18 px), allowing RF-DETR to localize them (achieving **3.47%** mAP@50, peaking at 10.0% post-EXIF fix)."
-                    )
-
-                    with st.expander("🖼️ Explore RF-DETR Evaluated Validation Tiles", expanded=True):
-                        st.caption("Side-by-side comparison between manual Ground Truth (AnyLabeling) and model predictions at confidence threshold 0.5:")
-                        tile_options = {
-                            "Cluster Best Case (20251021_122655_11)": "20251021_122655_11_gt_vs_pred.jpg",
-                            "Damage on Leaflet (20251021_151409_9)": "20251021_151409_9_gt_vs_pred.jpg",
-                            "Single Isolated Hole (20251021_132633_1)": "20251021_132633_1_gt_vs_pred.jpg",
-                            "Dense Seedling / Under-Recall (20251021_122353_12)": "20251021_122353_12_gt_vs_pred.jpg",
-                        }
-                        chosen_tile_label = st.selectbox("Select Evaluation Tile to Inspect", list(tile_options.keys()))
-                        chosen_tile_file = tile_options[chosen_tile_label]
-                        tile_path = RFDETR_EXAMPLES_DIR / chosen_tile_file
-                        if tile_path.exists():
-                            st.image(
-                                Image.open(tile_path),
-                                caption=f"RF-DETR: Ground Truth (Left) vs Predicted (Right) | {chosen_tile_label}",
-                                use_container_width=True,
-                            )
     else:
         st.info("👆 Please select a representative benchmark image or upload your own field photograph to begin.")
 

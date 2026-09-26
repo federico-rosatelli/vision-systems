@@ -194,3 +194,7 @@ deliverables (video, code/repo access). Read this whole file before starting any
 
 - [ ] Confirm Luca Eichler has access to this repository (or has been sent the code) — due end
   of month, separate from the report/video deadline.
+- [ ] Separately send the RF-DETR checkpoint (`outputs/rfdetr_hole_pitting/checkpoint_best_total.pth`,
+  116MB, gitignored — not included in the repo). Needed only for the Streamlit webapp's live
+  Stage 4 lesion detection; see `analyses/WEBAPP_PLAN.md` section 3 for details and where to
+  place it. Without it the webapp still runs, just with live RF-DETR detection disabled.

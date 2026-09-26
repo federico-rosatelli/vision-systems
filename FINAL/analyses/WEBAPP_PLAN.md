@@ -61,3 +61,34 @@ Use the standard tagging system: `[ ]` (Not Started), `[IN PROGRESS]` (Working o
   - [x] Ensure the app handles errors gracefully (e.g., if a user uploads a non-image file).
   - [x] Test memory consumption (ensure models aren't reloaded on every button click).
   - [x] Add explanatory markdown text throughout the app so external users understand the difference between the Classical CV and Deep Learning approaches.
+
+---
+
+## 3. Deployment / distribution notes
+
+### RF-DETR checkpoint is not in git — needs to be shared separately
+
+`scripts/app.py`'s Stage 4 ("Fine-Grained Lesion Detection") loads the trained RF-DETR
+checkpoint from `outputs/rfdetr_hole_pitting/checkpoint_best_total.pth` to run live detection
+on the selected/uploaded image. This file is **116MB and deliberately gitignored**
+(`.gitignore`: `outputs/rfdetr_hole_pitting/*.pth`), consistent with this project's convention
+of not committing large trained artifacts (same as `weights/` for DINOv3, documented in
+`analyses/DINOV3_SETUP.md`). It currently exists only on the machine it was trained on.
+
+Unlike the DINOv3 backbone, this checkpoint has no public download URL — it's a custom
+fine-tune, so there's no "download it from Hugging Face" equivalent. If the app is shared
+(e.g. handed to Luca Eichler, or run on a different machine), the app degrades gracefully:
+`load_rfdetr_detector()` returns `None` when the checkpoint is missing, and Stage 4 shows a
+warning plus falls back to the static reference gallery (`outputs/rfdetr_hole_pitting/
+example_figures/`) instead of crashing — but **live RF-DETR detection on a new image will not
+work** without the checkpoint file present at that exact path.
+
+**When code/repo access is shared with Luca (see `analyses/REPORT_TASKS.md`), also send this
+file separately** (direct copy, shared drive, etc.) and have the recipient place it at:
+
+```
+FINAL/outputs/rfdetr_hole_pitting/checkpoint_best_total.pth
+```
+
+No retraining or other setup is needed once it's in place — `load_rfdetr_detector()` picks it
+up automatically on next app restart.
