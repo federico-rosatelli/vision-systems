@@ -17,3 +17,5 @@ huggingface_hub>=0.34.0
 safetensors>=0.4.0
 pytest>=7.0.0
 rfdetr[train,loggers]>=1.10.0
+streamlit>=1.38.0
+plotly>=5.22.0
