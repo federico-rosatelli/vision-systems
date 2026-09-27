@@ -26,9 +26,8 @@ Tags: `[ ]` open, `[IN PROGRESS]`, `[NEEDS VERIFICATION]`, `[x]` done and verifi
 - [ ] **Matriculation numbers**: replace the two `Matr.-Nr.\ TODO` in `report/main.tex` (line ~15).
 - [ ] **Read-through by both authors** (Emrullah + Federico). Check that the wording sounds like us,
       especially Conclusion → "Limitations" and "Recommendations for future data recording".
-- [ ] **Verify two bib entries** in `report/references.bib`: author lists of `dinov3`
-      (arXiv:2508.10104) and `rfdetr` (currently cites the GitHub repo; replace with the paper if
-      there is one).
+- [x] **Bib entries checked online (2026-09-27)**: `dinov3` matches arXiv:2508.10104 (Siméoni et al.,
+      26 authors); `rfdetr` now cites the paper (Robinson et al., ICLR 2026, arXiv:2511.09554).
 - [ ] **Decide the headline framing** (currently: area-weighted is the selected model, ranking loss is
       the improvement, uniform's better test result is reported openly in §4.3). Change only if
       both authors prefer a different framing — do not re-select on the test set.
