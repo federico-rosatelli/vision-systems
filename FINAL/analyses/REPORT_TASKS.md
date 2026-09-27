@@ -23,7 +23,7 @@ Tags: `[ ]` open, `[IN PROGRESS]`, `[NEEDS VERIFICATION]`, `[x]` done and verifi
 
 ### Report (before submitting)
 
-- [ ] **Matriculation numbers**: replace the two `Matr.-Nr.\ TODO` in `report/main.tex` (line ~15).
+- [x] **Matriculation numbers** added to `report/main.tex` (2026-09-27).
 - [ ] **Read-through by both authors** (Emrullah + Federico). Check that the wording sounds like us,
       especially Conclusion → "Limitations" and "Recommendations for future data recording".
 - [x] **Bib entries checked online (2026-09-27)**: `dinov3` matches arXiv:2508.10104 (Siméoni et al.,
