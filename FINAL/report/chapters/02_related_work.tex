@@ -1,2 +1,33 @@
 \section{Related Work}
-% TODO: Write related work
+\label{sec:related}
+
+\paragraph{Classical plant segmentation.} Colour indices such as excess green, together with
+thresholds in HSV or CIELAB space, are the standard way to separate vegetation from soil in field
+images~\cite{woebbecke1995color,hamuda2016survey}. They are fast and easy to interpret but depend
+on lighting and soil colour, and they cannot distinguish lesion types that have similar colours,
+such as brown pitting and soil seen through a hole.
+
+\paragraph{Deep learning for plant phenotyping.} Pretrained CNNs and vision transformers are widely
+used to classify or regress plant traits from images~\cite{kamilaris2018deep}. Self-supervised
+backbones such as DINOv2~\cite{oquab2023dinov2} and DINOv3~\cite{dinov3} provide strong frozen
+features, so only a small head has to be trained, which suits small labelled sets. These models
+work at a fixed input resolution around $224\times224$, however, which is far too low for
+millimetre-sized lesions on seedlings in a full field image.
+
+\paragraph{Multiple instance learning.} In MIL, a label is given for a bag of instances but not
+for the instances themselves~\cite{dietterich1997solving,carbonneau2018multiple}. Attention-based
+MIL (ABMIL)~\cite{ilse2018attention} learns the pooling weights from the instance features and is
+the usual deep MIL baseline, for example for gigapixel pathology slides, which share our problem of
+small relevant regions in very large images. Our setting is a regression variant: the bag label is
+an average damage over plants, which suggests a fixed weighted mean instead of learned attention.
+
+\paragraph{Learning from comparisons.} When absolute labels are noisy, relative judgements such as
+``image A is more damaged than image B'' can be more reliable. Pairwise ranking losses, going back
+to RankNet~\cite{burges2005learning}, train a model to order pairs correctly and can be combined
+with a regression loss.
+
+\paragraph{Domain shift in agricultural vision.} Models trained on one field, season or set of
+lighting conditions often degrade sharply elsewhere. For example, a plant disease classifier with
+over 99\,\% accuracy on laboratory images dropped to about 31\,\% on field images~\cite{mohanty2016using},
+and multi-site datasets such as the Global Wheat Head Dataset were created precisely to measure
+this effect~\cite{david2020global}. We therefore evaluate on unseen trials without any adaptation.

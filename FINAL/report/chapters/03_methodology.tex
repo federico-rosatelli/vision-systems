@@ -1,2 +1,130 @@
 \section{Methodology}
-% TODO: Write methodology
+\label{sec:method}
+
+\input{figures/pipeline}
+
+Figure~\ref{fig:pipeline} summarizes the pipeline. We either (i) regress a score from the whole
+downsampled photograph (baseline), or reduce the image to the interior of the metal frame, find the
+plant regions, and then (ii) measure damage directly with classical colour rules or (iii) regress a
+score for each plant region and pool the plant scores into an image score (MIL). All learned
+models share the same frozen DINOv3 backbone and are trained on image-level expert scores only.
+
+\subsection{Data curation and frame extraction}
+\label{sec:data}
+
+\paragraph{Calibration set.} We use the 470 BBCH10 images from Gro\ss-Gerau (21.10.2025) for
+which the independent JLU and GAU scores differ by less than 5 percentage points. The target is
+the damaged share of visible leaf area in percent. The images are split by \emph{plot group} into
+331 training, 66 validation and 73 test images, so no plot and no physical image appears in two
+splits. The split is stored as a fixed manifest, and every feature cache and checkpoint records the
+manifest's SHA-256 hash; training and evaluation refuse to run on a mismatching manifest. An
+earlier experiment on a different manifest contained duplicated images across splits; its results
+are discarded. The test split stayed closed until model selection was finished.
+
+\paragraph{Frame extraction.} Only plants inside the frame are scored. The galvanized frame bars
+are segmented by an HSV colour range on a downscaled image, their outer edges are found with a
+probabilistic Hough transform, and the four frame corners are estimated from the clustered lines.
+The polygon is inset by 2.5\,\% to remove the bars themselves and rectified with a perspective
+warp. Images are read with their EXIF orientation applied, since most field images carry a
+non-default orientation tag.
+
+\subsection{Classical computer vision}
+\label{sec:classical}
+
+\paragraph{Plant regions and area weights.} Inside the frame, a conservative vegetation mask keeps
+pixels with OpenCV hue in $[35,85]$, saturation and value $\geq 40$, and excess
+green~\cite{woebbecke1995color} $G-\max(R,B) \geq 5$, followed by morphological opening/closing and
+removal of components below 30\,px. Nearby green fragments are merged by a dilation proportional to
+the image size (1.8\,\% of the shorter side), so that the cotyledons of one seedling form one
+region. Regions with fewer than 150 green pixels are dropped and the remaining boxes are padded by
+2.5\,\%. If no frame is detected, the whole image is used instead of the frame crop. The number of green
+mask pixels $A_i$ of region $i$ is its visible area, used as the MIL weight in
+Section~\ref{sec:mil}.
+
+\paragraph{Direct damage measurement.} Following the supervisor's suggestion, we also measured
+damage directly as
+\begin{equation}
+  d = 100 \cdot \frac{\#\text{pixels classified as hole or pitting}}{\#\text{estimated leaf pixels}} .
+\end{equation}
+For each plant region, the leaf mask is filled to a solid leaf outline, and non-green blobs
+enclosed by it are treated as damage: dark blobs as shot holes and bright yellow/brown blobs as
+pitting. A second hole rule additionally accepts enclosed blobs whose CIELAB colour is close to
+the surrounding soil, since a real hole shows the soil below. Both rules
+were judged by manual review (Section~\ref{sec:res-classical}).
+
+\paragraph{Learned hole/pitting detector.} As the colour rules could not separate holes from
+pitting and soil, we annotated bounding boxes for \texttt{shot\_hole} and \texttt{pitting} on 40
+training/validation images (342 boxes, SAM-assisted in AnyLabeling) and fine-tuned RF-DETR
+Nano~\cite{rfdetr}. Because a typical mark is about $18\times18$\,px in a $4000\times3000$ image, we
+train on $640\times640$ tiles around the annotations (71 training / 16 validation tiles). This
+detector is exploratory and not used by the scoring models.
+
+\subsection{Whole-image baseline}
+\label{sec:baseline}
+
+The baseline follows the project brief: the complete field photograph, without frame cropping,
+is resized to $224\times224$ and passed through a frozen DINOv3 ViT-S/16~\cite{dinov3}. Its 384-dimensional \texttt{[CLS]}
+embedding goes to a regression head
+$\text{Linear}(384,256)\!\to\!\text{ReLU}\!\to\!\text{Dropout}(0.3)\!\to\!\text{Linear}(256,1)$
+with a sigmoid scaled to $[0,100]$\,\%. At this resolution a seedling covers only a few pixels,
+which motivates the plant-level approach below.
+
+\subsection{Multiple instance learning with area-weighted pooling}
+\label{sec:mil}
+
+We treat an image as a bag of plant regions (instances) with a single bag label $y$, the expert
+score. Plants have no labels of their own, and we do not copy $y$ onto each plant. Every region is
+resized to $224\times224$ and embedded with the same frozen DINOv3 backbone, giving features
+$h_i \in \mathbb{R}^{384}$. Since the backbone is frozen, all bags are embedded once and cached.
+The head $f$ from Section~\ref{sec:baseline} predicts a damage score $\hat y_i = f(h_i)$ for each
+plant, and the image prediction is the visible-area-weighted mean
+\begin{equation}
+  \hat y = \sum_i w_i\, \hat y_i, \qquad w_i = \frac{A_i}{\sum_j A_j},
+  \label{eq:weighted}
+\end{equation}
+as suggested by the supervisor, since the expert estimates the damaged share of the visible leaf
+area. Large plants therefore count more, and small false-positive regions have little influence.
+
+We compare this rule with three alternatives. \emph{Uniform} pooling sets $w_i = 1/N$.
+\emph{ABMIL}~\cite{ilse2018attention} learns the weights from the features,
+$a_i = \operatorname{softmax}_i\!\big(w^\top \tanh(V h_i)\big)$, and regresses from the pooled
+feature $\sum_i a_i h_i$. \emph{Gated ABMIL} multiplies the $\tanh$ branch by a sigmoid gate
+$\sigma(U h_i)$. The attention width is 128.
+
+All MIL models are trained with the Huber loss, AdamW (learning rate $10^{-3}$, weight decay
+$10^{-4}$), batch size 32, and at most 50 epochs with early stopping on validation MAE (patience
+10). Each aggregation method is trained with seeds 42, 43 and 44.
+
+\paragraph{Ranking-based training.} The expert scores are subjective, but the \emph{order} of two
+images is often clear even when the exact values are not. Following the ranking direction of the
+project brief, we train the area-weighted model on pairs $(A,B)$: every training image $A$ is paired
+with a random partner $B$ whose score differs by at least $m$, and the loss is
+\begin{equation}
+  \mathcal{L} = \tfrac12\big[\ell_\delta(\hat y_A, y_A) + \ell_\delta(\hat y_B, y_B)\big]
+  + \lambda \max\!\big(0,\, -s\,(\hat y_A - \hat y_B) + m\big),
+  \qquad s = \operatorname{sign}(y_A - y_B),
+\end{equation}
+where $\ell_\delta$ is the Huber loss ($\delta = 1$), $m = 5$ percentage points and
+$\lambda = 0.5$. Backbone, pooling and head are identical to the regression model, so only the
+training objective differs.
+
+\subsection{Out-of-distribution evaluation}
+\label{sec:ood-method}
+
+To test generalization, we apply all trained models zero-shot, without any fine-tuning or
+recalibration, to three sets that were never used in development: (i) the two field trials
+Weilburger Grenze (JLU WG1, 07.10.2025, BBCH10, 906 scored images) and DSV Asendorf (Trial~1,
+15.--17.09.2025, BBCH11, 897 images); and (ii) the 218 Gro\ss-Gerau images from plots outside the
+training and validation splits on which JLU and GAU disagreed by more than 5 points. The last set
+shares field, date and camera with the training data but has noisy labels, and it lets us compare
+model--rater agreement with rater--rater agreement. The pipeline is run unchanged, and we record
+whether the frame was found and how many plant regions were extracted in each image.
+
+\subsection{Metrics}
+\label{sec:metrics}
+
+We report MAE and RMSE in percentage points, Pearson $r$ and Spearman $\rho$. Because breeders
+mainly need to \emph{rank} plots, we also report pairwise ranking accuracy: the fraction of image
+pairs whose true scores differ by at least 5 points and whose predicted order is correct. For the
+test set we give a bootstrap 95\,\% confidence interval of $\rho$ (5{,}000 resamples). Constant
+mean and median predictors serve as reference points.

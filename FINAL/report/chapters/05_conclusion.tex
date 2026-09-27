@@ -1,2 +1,53 @@
-\section{Conclusion}
-% TODO: Write conclusion
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+We studied automatic scoring of flea beetle feeding damage on young oilseed rape from field
+photographs with very few reliable labels. The three families of approaches behave very
+differently:
+\begin{itemize}
+  \item \textbf{Classical computer vision} is reliable for the geometric steps, finding the frame
+        and the plants and measuring their visible area, but not for the damage itself: holes,
+        soil and brown pitting cannot be separated by colour, and eaten leaf edges are invisible
+        to a pixel count. It is best used as preprocessing and for interpretable side features
+        such as pitting area.
+  \item \textbf{Whole-image regression} with a frozen DINOv3 fails completely (test
+        $\rho = -0.11$), because downsampling a field photograph to $224\times224$ erases the
+        seedlings.
+  \item \textbf{Plant-level MIL} works in-domain: test MAE 2.4--2.6 percentage points and
+        $\rho$ 0.76--0.81, far better than the baseline. Fixed pooling rules are at least as good as
+        learned attention. Area weighting won on validation, uniform pooling on test; given how the
+        raters score, uniform pooling may match the label definition better. Adding a pairwise
+        ranking loss gives a small improvement that is consistent across all seeds.
+\end{itemize}
+On the Gro\ss-Gerau images where the two raters disagreed, the model agrees with each rater
+better than they agree with each other. On new field trials, however, the model does not
+generalize ($\rho$ 0.03 and 0.26), mainly because the frame is not found and plants outside the
+frame are scored, and partly because the learned features transfer poorly to other fields.
+
+\paragraph{Limitations.} All reliable labels come from one field on one day, so our in-domain
+numbers describe a single recording condition. The labels are subjective averages that mix holes
+and pitting, which limits the achievable accuracy and makes the choice of pooling rule ambiguous.
+Validation and test sets are small (66 and 73 images), so differences below about 0.1 in $\rho$
+between methods are uncertain. Only 40 images were annotated for the hole/pitting detector, and
+only 7 of the 217 genotypes have more than one plot in the calibration set, so we did not attempt
+a genotype resistance ranking beyond an illustrative plot-level list.
+
+\paragraph{Recommendations for future data recording.} Most of the generalization failure could be
+avoided at recording time:
+(i) use the same frame and hold the camera so that the frame fills the photo, at a fixed height,
+at every site;
+(ii) give the frame a marker that is easy to detect, e.g.\ coloured corners or an ArUco marker next
+to the QR code;
+(iii) score a small calibration set (50--100 images) with two raters at every site and date, so that
+each new domain has some reliable labels;
+(iv) record, per image, whether single plants or the image as a whole were scored, and score holes
+and pitting separately;
+(v) annotate 150--300 images per damage class with boxes or masks to make a lesion detector usable.
+
+\paragraph{Future work.} The next steps are, in order of expected benefit: a more robust frame and
+plant detector (e.g.\ SAM-based segmentation of plants, as suggested in the project brief) and
+re-running the out-of-distribution evaluation; few-shot calibration of the head with a few
+labelled images per new site; domain adaptation by self-supervised pre-training on the 8{,}946
+unlabelled images; weak labels from a vision-language model; and combining the ranking loss with
+uniform pooling. A learned leaf and lesion segmentation would also allow the plant counts, leaf
+counts and hole/pitting statistics requested by the project partners.

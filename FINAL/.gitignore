@@ -75,6 +75,12 @@ outputs/hole_pitting_annotations/coco_export_tiled.OLD_BUGGY/
 !outputs/tables/
 !outputs/runs/*/plots/*.png
 !outputs/rfdetr_hole_pitting/example_figures/*.jpg
+!report/figures/*.jpg
+# Console logs of background runs
+outputs/*.log
+# Run checkpoints (~84 MB each, reproducible via analyses/COMMANDS.md);
+# already-tracked checkpoints such as mil_weighted_seed42 stay tracked.
+outputs/runs/*/checkpoints/
 .vscode/
 .idea/
 !data/

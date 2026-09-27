@@ -219,6 +219,21 @@ example figures for item 6, not planned in advance.
   before attributing a negative result to data scarcity).
 - `pytest tests/ -q` still passes (48 passed) after this change.
 
+## 8. Report-writing verification pass (2026-09-27)
+
+Status: complete. Found and fixed while writing the report:
+- `patch_joint_seed42` and `patch_joint_sampled_seed42` have **bit-identical weights** (one was
+  overwritten). Replaced by a clean 3-seed ranking experiment, `joint_weighted_seed*`.
+- The OOD folder `WG1` is **Weilburger Grenze**, not Rauischholzhausen (mislabel in `evaluate_ood.py`).
+- The whole-image baseline had no matching checkpoint; retraining reproduced it exactly (Huber).
+- Test metrics for all aggregation methods were never computed; on test, uniform pooling beats
+  area weighting (reported openly, no re-selection).
+- Frame detection fails on most OOD images (WG1 59 % detected, DSV 0.1 %), explaining much of
+  the OOD failure.
+- Methodology details checked against code: the MIL pipeline uses HSV hue 35–85, S/V ≥ 40,
+  min region 150 px (`CSFBPlantPatchDataset`), not the `vegetation_mask` defaults; the
+  whole-image baseline uses the full photo, not the frame crop.
+
 ## Out of scope for this plan
 
 - Writing any `report/chapters/*.tex` content.

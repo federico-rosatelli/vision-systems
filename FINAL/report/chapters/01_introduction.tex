@@ -1,2 +1,50 @@
 \section{Introduction}
-% TODO: Write introduction
+\label{sec:intro}
+
+The cabbage stem flea beetle (CSFB, \emph{Psylliodes chrysocephala}) is a major pest of oilseed
+rape (\emph{Brassica napus}). In autumn, adult beetles feed on the cotyledons and first true
+leaves of young plants, leaving small round \emph{shot holes} and shallow yellow/brown
+\emph{pitting}. With fewer insecticides available, breeding resistant cultivars is an important
+alternative. The Res4StRes project therefore phenotypes hundreds of genotypes in field trials at
+six locations. For every plot, three photographs are taken through a $0.1\,\text{m}^2$ metal
+frame, and trained raters estimate the percentage of damaged leaf area by comparing the plants
+with visual damage scales. Early growth stages (BBCH10--11: cotyledons, possibly the first true
+leaf~\cite{bbch}) matter most, because this is when feeding damage threatens crop establishment.
+
+Manual scoring is slow and subjective. Scoring all 8{,}946 images would take a single rater over a
+year at 20 minutes per image, and when two universities (JLU and GAU) scored the same 900 images
+independently, their scores correlated with only $r = 0.549$. According to the project partners,
+the score folds shot holes and pitting into one number and is most likely a per-plant estimate
+averaged over the plants in the image. As a result, only 2{,}747 images have scores, and only 470
+images, where both raters agree within 5 percentage points, can be regarded as reliable labels.
+
+This makes automatic scoring a \emph{weakly supervised} problem. There is one noisy scalar label
+per image, no labels for individual plants or lesions, and very few reliable examples. Moreover,
+a seedling covers less than 1\,\% of the image, and a shot hole only a few dozen pixels, so
+simply resizing the image for a standard backbone destroys the signal. Finally, the model has to
+work on new fields with different soil, lighting and plant age.
+
+We compare three families of approaches on this problem:
+\begin{itemize}
+  \item \textbf{Classical computer vision}: frame detection, colour-based plant segmentation and a
+        direct measurement of damaged pixels, plus an RF-DETR hole/pitting detector trained on a
+        small annotated set.
+  \item \textbf{Whole-image regression}: the frozen DINOv3 baseline suggested in the project brief.
+  \item \textbf{Multiple instance learning (MIL)}: each image is a bag of plant regions; a frozen
+        DINOv3 embeds each plant, a shared head scores it, and the plant scores are averaged with
+        weights proportional to visible plant area. We compare this with uniform pooling and
+        attention-based MIL, and add the pairwise ranking loss that was our chosen research
+        direction.
+\end{itemize}
+
+Our contributions are: (i) a leakage-safe benchmark on the 470 reliable images with plot-grouped
+splits and a test set that stayed closed during development; (ii) evidence that plant-level MIL
+reduces the error of the whole-image baseline by almost half, with area-weighted pooling
+outperforming attention pooling; (iii) evidence that adding a ranking loss gives a small but
+consistent improvement; (iv) a zero-shot evaluation on two unseen field trials and on images the
+two raters disagreed on, which shows where the model fails; and (v) an analysis of which classical
+components work, which do not, and why.
+
+Section~\ref{sec:related} reviews related work, Section~\ref{sec:method} describes the methods,
+Section~\ref{sec:experiments} presents the results, and Section~\ref{sec:conclusion} concludes with
+limitations and recommendations for future data collection.

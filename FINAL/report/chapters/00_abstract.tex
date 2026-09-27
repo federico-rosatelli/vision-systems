@@ -1,3 +1,17 @@
 \begin{abstract}
-% TODO: Write abstract
+Breeding oilseed rape for resistance to the cabbage stem flea beetle requires scoring feeding
+damage on thousands of field photographs of young plants (BBCH10--11), a task that is slow and
+subjective for human raters. We learn this score from only 470 reliably labelled images and
+compare three approaches: classical colour-based computer vision, whole-image regression with a
+frozen DINOv3 backbone, and multiple instance learning (MIL), where each plant is scored separately
+and the plant scores are pooled into an image score. The whole-image baseline fails (test Spearman
+$\rho = -0.11$), because downsampling the photograph removes the damage. Plant-level MIL reaches a
+test MAE of 2.4--2.6 percentage points and $\rho$ of 0.76--0.81; fixed pooling rules are at least
+as good as learned attention, and adding a pairwise ranking loss gives a small but consistent
+improvement (test MAE 2.51, $\rho = 0.78$). On images where the two expert raters disagree, the
+model agrees with each rater better than the raters agree with each other. Zero-shot transfer to
+two other field trials fails ($\rho = 0.03$ and $0.26$), mainly because of different camera setups
+that break frame detection. Classical rules reliably find frames and plants but cannot detect shot
+holes; a small RF-DETR hole/pitting detector shows a weak signal after fixing a labelling bug. We
+conclude with recommendations for future data recording.
 \end{abstract}

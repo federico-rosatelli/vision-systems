@@ -1,0 +1,39 @@
+% Pipeline overview, included from chapters/03_methodology.tex
+\begin{figure}[tb]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize, >=Stealth, node distance=4mm and 5mm,
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=9mm, inner sep=3pt, fill=#1},
+  box/.default=white]
+  \node[box=gray!12] (img) {Field image\\$\approx 4000{\times}3000$};
+  \node[box, right=of img] (frame) {Frame detection\\+ perspective crop};
+  \node[box, right=of frame] (veg) {Vegetation mask\\$\to$ plant regions};
+
+  % MIL branch (main)
+  \node[box=blue!8, right=8mm of veg, yshift=10mm] (dino) {Frozen DINOv3\\per plant $\to h_i$};
+  \node[box=blue!8, right=of dino] (head) {Head $f$\\$\hat y_i = f(h_i)$};
+  \node[box=blue!15, right=of head] (pool) {Area-weighted mean\\$\hat y = \sum_i w_i\, \hat y_i$};
+
+  % classical branch
+  \node[box=orange!10, right=8mm of veg, yshift=-10mm] (direct)
+    {Holes / pitting inside leaf mask:\ \ $d = 100\cdot\frac{\text{damaged px}}{\text{leaf px}}$};
+
+  % whole-image baseline
+  \node[box=gray!6, below=12mm of img.south west, anchor=north west] (whole)
+    {Whole-image baseline: full photo resized to $224{\times}224$ $\to$ frozen DINOv3 $\to$ head $\to \hat y$};
+
+  \draw[->] (img) -- (frame);
+  \draw[->] (frame) -- (veg);
+  \draw[->] (veg.east) -- ++(4mm,0) |- (dino.west);
+  \draw[->] (veg.east) -- ++(4mm,0) |- (direct.west);
+  \draw[->] (dino) -- (head);
+  \draw[->] (head) -- (pool);
+  \draw[->] (img.south) -- (img.south |- whole.north);
+  \draw[->, dashed] (veg.north) |- node[pos=0.75, above]{mask areas $A_i$, \ $w_i = A_i / \sum_j A_j$} ([yshift=6mm]pool.north) -- (pool.north);
+\end{tikzpicture}}
+\caption{Pipeline overview. Blue: area-weighted MIL (main method), trained with the
+image-level expert score only. Orange: classical direct damage measurement. Grey: whole-image
+baseline.}
+\label{fig:pipeline}
+\end{figure}

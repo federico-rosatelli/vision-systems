@@ -64,6 +64,15 @@ Use the standard tagging system: `[ ]` (Not Started), `[IN PROGRESS]` (Working o
 
 ---
 
+## 2b. Open issues found on 2026-09-27
+
+- `scripts/app.py` lists `baseline_regression_seed42`, `baseline_regression_mse_seed42` — these run
+  folders do not exist in `outputs/runs/`. The reproduced whole-image baseline is
+  `wholeimage_huber_seed42`.
+- `patch_joint_seed42` and `patch_joint_sampled_seed42` are bit-identical duplicates; the proper
+  ranking models are `joint_weighted_seed{42,43,44}`.
+- The OOD label "Rauischholzhausen" in the app should read "Weilburger Grenze".
+
 ## 3. Deployment / distribution notes
 
 ### RF-DETR checkpoint is not in git — needs to be shared separately

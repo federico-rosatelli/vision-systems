@@ -167,10 +167,44 @@ python main.py --config configs/smoke_config.json
 
 ## 9. Zero-Shot Out-of-Distribution (OOD) Field Benchmarks
 
-Evaluates model generalization zero-shot on unseen field trial datasets (`Rauischholzhausen_WG1` and `DSV_Trial_1`), supporting automatic local and server NFS path resolution.
+Evaluates model generalization zero-shot on unseen field trial datasets (`Rauischholzhausen_WG1` — actually **Weilburger Grenze**, folder `WG1`; the name in the code is wrong — and `DSV_Trial_1`), supporting automatic local and server NFS path resolution.
 
 ```bash
 python main.py --config configs/config_mil_eval.json
+```
+
+---
+
+### 9.1 Extended generalization study (used in the report)
+
+Extracts plant bags once for Weilburger Grenze, DSV, held-out GG1 images where the raters disagree,
+and the GG1 test split (sanity check), then evaluates all MIL checkpoints with constant baselines,
+strata, plot-level metrics and rater agreement. Writes `outputs/tables/generalization/`. ~15 min.
+
+```bash
+python scripts/evaluate_generalization.py                 # extract + evaluate
+python scripts/evaluate_generalization.py --skip-extract  # re-evaluate from outputs/cache/generalization_bags.pt
+```
+
+---
+
+## 9b. Report-specific experiments (2026-09-27)
+
+```bash
+# Ranking-based training, 3 seeds (joint Huber + margin ranking), ~1 min on cached features
+python scripts/train_joint_ranking.py
+
+# Whole-image baseline reproduction (Huber, seed 42) and its test evaluation
+python main.py train --config configs/config_mse.json --loss huber --run_name wholeimage_huber_seed42 \
+  --out_manifest outputs/tables/baseline_manifest_split.csv --image_size 224 --high_quality_only False
+python main.py evaluate --config configs/config_mse.json --out_manifest outputs/tables/baseline_manifest_split.csv \
+  --model_path outputs/runs/wholeimage_huber_seed42/checkpoints/best_model.pth --image_size 224
+
+# Predicted-vs-true scatter figure for the report (needs 9.1 first)
+python scripts/plot_report_scatter.py
+
+# Build the report (or save in VS Code with LaTeX Workshop)
+cd report && pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
 ---

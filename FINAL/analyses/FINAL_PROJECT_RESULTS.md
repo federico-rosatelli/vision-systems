@@ -45,6 +45,11 @@ Evaluation of the whole-image baseline model, where complete field frames are do
 | **Pearson Correlation ($r$)** | 0.2391 | -0.0971 |
 | **Spearman Rank Correlation ($\rho$)** | 0.2712 | -0.1078 |
 
+Reproduced exactly on 2026-09-27 by retraining from the frozen manifest with Huber loss, seed 42
+(`outputs/runs/wholeimage_huber_seed42`): val MAE 5.1265, test MAE 4.6502, RMSE 6.2596, Pearson
+-0.0971, Spearman -0.1078, pairwise gap-5 accuracy 0.46 (chance). The original run was therefore the
+Huber variant. Constant training median gives test MAE 4.01, so the baseline is worse than a constant.
+
 > **Key Finding**: Downsampling whole images discards small shot-hole details, leading to negative test correlations. This strongly justified moving to a Multiple Instance Learning (MIL) patch-based architecture.
 
 ---
@@ -112,9 +117,73 @@ report should cite the test-set numbers (point estimate) as the primary
 generalization claim, and should state the CI so the val→test gap reads as
 an acknowledged small-sample uncertainty rather than an unexplained drop.
 
+### Ranking-based training (`JointRankingRegressionLoss`), 3 seeds, 2026-09-27
+
+Huber regression + pairwise `MarginRankingLoss` (margin 5, lambda 0.5). Backbone, area-weighted
+plant-score pooling, head and all hyperparameters are identical to the §5 aggregation runs
+(`configs/aggregation_experiments.json`); only `training_mode="joint"` differs. Retrained on the
+cached 470-bag features as `outputs/runs/joint_weighted_seed{42,43,44}` (checkpoint metadata
+records `training_mode: joint`). Both model families evaluated with the same script (val + test,
+bootstrap = 5,000 resamples); the weighted val means reproduce §5 exactly.
+
+| Model (3 seeds, mean ± SD) | Split | MAE (%) | Pearson r | Spearman rho | Pairwise acc. (gap >= 5) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| Area-weighted, Huber (`aggregation_weighted_*`) | Val (N=66) | 2.6932 ± 0.0232 | 0.8558 ± 0.0026 | 0.8532 ± 0.0023 | 0.9397 ± 0.0009 |
+| Area-weighted, joint ranking (`joint_weighted_*`) | Val (N=66) | 2.6589 ± 0.0424 | 0.8621 ± 0.0021 | 0.8591 ± 0.0005 | 0.9421 ± 0.0009 |
+| Area-weighted, Huber | Test (N=73) | 2.6221 ± 0.0679 | 0.7502 ± 0.0194 | 0.7633 ± 0.0084 | 0.9242 ± 0.0060 |
+| Area-weighted, joint ranking | Test (N=73) | 2.5145 ± 0.0533 | 0.7837 ± 0.0175 | 0.7810 ± 0.0020 | 0.9330 ± 0.0027 |
+
+Per-seed test Spearman: Huber 0.765 / 0.771 / 0.754; joint 0.783 / 0.780 / 0.780 (bootstrap 95% CI
+of each single run roughly [0.64, 0.88]).
+
+Conclusion: the joint ranking loss is slightly but consistently better than pure regression on
+every seed, on both validation and test. The gap is small relative to single-run CIs, so report
+it as a consistent small improvement, not a large one. Protocol note: `aggregation_weighted_seed42`
+was selected on validation *before* the test set was opened; the joint runs were trained afterwards,
+but a validation-only choice between the two would also have picked the joint model.
+
+Superseded: `patch_joint_seed42` / `patch_joint_sampled_seed42` (older on-the-fly patch pipeline,
+single seed, `training_mode` not recorded) have **bit-identical weights** — one checkpoint was
+overwritten. The sampled one scored test MAE 2.6051 / Spearman 0.7691. Do not cite them.
+
+---
+
+## 6b. Test-set results for all aggregation methods (2026-09-27)
+
+From `scripts/evaluate_generalization.py` (dataset `GG1_calibration_test`; this path re-extracts
+features from raw images and reproduces the cached-feature test metrics exactly). Mean ± SD, 3 seeds.
+
+| Method | Test MAE | Test Spearman | Pairwise gap-5 |
+| :--- | :---: | :---: | :---: |
+| Uniform | **2.396 ± 0.013** | **0.808 ± 0.004** | 0.932 |
+| ABMIL | 2.535 ± 0.036 | 0.770 ± 0.005 | 0.926 |
+| Gated ABMIL | 2.548 ± 0.029 | 0.765 ± 0.007 | 0.924 |
+| Area-weighted (selected on val) | 2.622 ± 0.068 | 0.763 ± 0.008 | 0.924 |
+| Area-weighted + ranking loss | 2.515 ± 0.053 | 0.781 ± 0.002 | 0.933 |
+
+On test, uniform pooling beats area weighting on every seed, reversing the validation ranking.
+Reported as-is (no re-selection on test). Possible reason: raters likely average per-plant scores (Luca).
+
 ---
 
 ## 7. Zero-Shot Out-of-Distribution (OOD) Field Benchmark
+
+**Naming correction (2026-09-27):** folder `2025_10_07_RSFB-Phenotyping_WG1_JLU` is **Weilburger
+Grenze** (project brief data table), not Rauischholzhausen (`RHH1`, BBCH13, which has no scores
+file). The label "Rauischholzhausen" in `evaluate_ood.py` and below is wrong.
+
+**Extended study (2026-09-27, `scripts/evaluate_generalization.py`, outputs in
+`outputs/tables/generalization/`):** all 16 checkpoints on WG1, DSV, and 218 held-out-plot GG1 images
+where JLU/GAU disagree (>5 points). Reproduces the numbers below exactly for `mil_weighted_seed42`.
+- Frame detected: GG test 100%, GG disagreement 99%, WG1 59%, DSV 0.1% (1/897). Plant regions per
+  image: 6.0 / 7.3 / 14.3 / 24.4. Visual check: DSV uses another camera and the frame fills the
+  photo; WG1 photos are taken from farther away with plants outside the frame.
+- Area-weighted (3 seeds): WG1 MAE 4.32, rho 0.031 (constant median MAE 4.10 is better);
+  DSV MAE 7.73, rho 0.264 (constant median 5.22 is better; mean prediction 11.8 vs true 7.1).
+  No pooling variant exceeds rho 0.07 (WG1) / 0.27 (DSV). Plot-level rho -0.01 / 0.23.
+- GG disagreement set: model rho 0.60 vs mean score; model vs JLU 0.50, vs GAU 0.55; JLU vs GAU
+  only 0.27 (r 0.17). JLU mean 27.4% vs GAU 12.8% on these images.
+- Brightness only matters at DSV (dark third MAE 10.2 vs bright third 6.5).
 
 Zero-shot evaluation of `mil_weighted_seed42` on unseen field trial datasets. Re-run
 2026-09-21 against the provenance-clean checkpoint (manifest SHA-256

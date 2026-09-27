@@ -57,12 +57,27 @@ The complete image was resized to 224 x 224, which removes much of the small dam
 | Pearson r | 0.2391 | -0.0971 |
 
 The model is worse than constant predictors on test MAE and does not learn useful test ordering.
+Reproduced exactly on 2026-09-27 (Huber loss, seed 42, `outputs/runs/wholeimage_huber_seed42`);
+test pairwise gap-5 accuracy is 0.46, i.e. chance.
 
 ### Plant-focused area-weighted model
 
 Pipeline: frame interior -> high-resolution plant regions -> frozen DINOv3 features -> visible-area-weighted aggregation -> regression.
 
-The corrected formulation predicts a score for every plant instance and then averages the scores using normalized plant-mask area. Across seeds 42, 43, and 44 it achieves validation MAE 2.6932 +/- 0.0232 and Spearman rho 0.8532 +/- 0.0022. It outperforms uniform score averaging, ABMIL, and gated ABMIL. The selected validation run is `aggregation_weighted_seed42`.
+The corrected formulation predicts a score for every plant instance and then averages the scores using normalized plant-mask area. Across seeds 42, 43, and 44 it achieves validation MAE 2.6932 +/- 0.0232 and Spearman rho 0.8532 +/- 0.0022. It outperforms uniform score averaging, ABMIL, and gated ABMIL **on validation**. The selected validation run is `aggregation_weighted_seed42`.
+
+**Test set (2026-09-27, 3 seeds):** area-weighted MAE 2.62 ± 0.07, Spearman 0.763 ± 0.008. On test,
+**uniform pooling is better** (MAE 2.40 ± 0.01, Spearman 0.808 ± 0.004, every seed), ABMIL/gated
+ABMIL lie in between. The selection is not changed after seeing test; the report states this
+openly. Possible reason: raters probably average per-plant scores (Luca), which is uniform pooling.
+
+**Ranking-based training (2026-09-27, 3 seeds, `joint_weighted_seed*`):** Huber + pairwise margin
+ranking loss on top of area weighting. Better than pure regression on every seed, val and test:
+test MAE 2.51 ± 0.05, Spearman 0.781 ± 0.002. Small, consistent gain. The older
+`patch_joint_*` checkpoints are bit-identical duplicates and must not be cited.
+
+**Model vs. raters:** on 218 held-out-plot GG1 images where JLU and GAU disagree, the model agrees
+with each rater (Spearman 0.50 / 0.55) better than the raters agree with each other (0.27).
 
 ### Biological damage features
 
@@ -76,11 +91,21 @@ A soil-aware hole classifier was compared with the old brightness-only rule on 2
 
 The later cached ABMIL experiment used `outputs/tables/data_manifest_split.csv`, which is not the fixed 470-image manifest. It contains duplicated physical images across splits and records with unknown plot groups. The resulting 612-sample MIL test metrics are contaminated and invalid for model comparison.
 
+**Naming correction (2026-09-27):** the OOD folder `WG1` is **Weilburger Grenze**, not Rauischholzhausen (see project brief). Every "Rauischholzhausen" below refers to Weilburger Grenze.
+
 **Resolved (2026-09-21):** the OOD results on Rauischholzhausen and DSV were repeated with the provenance-clean, frozen `mil_weighted_seed42` checkpoint. Confirmed numbers: Rauischholzhausen MAE 4.33%, Spearman 0.032; DSV MAE 8.11%, Spearman 0.270. See `analyses/FINAL_PROJECT_RESULTS.md` section 7 for the full table and `analyses/PRE_REPORT_FIXES_PLAN.md` item 3 for the investigation. Do not cite the ~0.20 Spearman numbers above; they are stale.
 
 **Resolved (2026-09-21):** the resistance leaderboard was regenerated from the frozen 470-image manifest at plot level (`scripts/build_resistance_leaderboard.py`, output `outputs/tables/plot_resistance_leaderboard.csv`), with zero `unknown` groups. A genotype-level view is provided only for the 7 genotypes (of 217) with >=2 plot-group replicates (`outputs/tables/genotype_resistance_subset.csv`), explicitly caveated as illustrative, not a validated comparison — the frozen dataset does not have enough replication per genotype for that. See `analyses/PRE_REPORT_FIXES_PLAN.md` item 5.
 
 ## Current decision
+
+**Update 2026-09-27:** the project is in the write-up phase (Luca: stop experimenting). The report
+draft is complete (`report/`, 12 pages). Headline model: area-weighted MIL (selected on val), with
+the ranking loss as the chosen-direction improvement and uniform pooling's better test result
+reported openly. OOD failure is explained mainly by recording setup (frame detected in 59 % of
+Weilburger Grenze and 0.1 % of DSV images); see `FINAL_PROJECT_RESULTS.md` §7.
+
+Earlier decision (2026-09-21):
 
 Use visible plant-mask pixel area as the primary aggregation weight. The data/cache contract is repaired, the 40-image mask audit passed, and the three-seed aggregation experiment selected area-weighted plant-score pooling. Both classical shot-hole rules failed manual review, so the combined direct percentage cannot be used. The next step for separate biological features is manual hole/pitting segmentation annotation; the trained area-weighted scoring model can proceed independently to clean OOD evaluation.
 

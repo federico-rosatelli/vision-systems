@@ -196,6 +196,16 @@ Report overall results and results stratified by location, BBCH stage, brightnes
 
 Done: re-ran OOD evaluation with the provenance-clean `mil_weighted_seed42` checkpoint. Confirmed numbers in `analyses/FINAL_PROJECT_RESULTS.md` section 7 (Rauischholzhausen MAE 4.33%/Spearman 0.032; DSV MAE 8.11%/Spearman 0.270). **Not done**: the stratified breakdown (by location, BBCH, lighting, soil, score range, preprocessing success) and the visual failure-mode audit described above were not performed — only the aggregate numbers were repeated. If time allows before the report is finalized, this stratified analysis would be the natural next OOD step; otherwise report the aggregate numbers with this gap noted.
 
+**Update 2026-09-27 — largely done** with `scripts/evaluate_generalization.py` (outputs in
+`outputs/tables/generalization/`): all 16 checkpoints, per-image predictions with preprocessing
+diagnostics, strata by score range, brightness and frame detection, constant predictors, plot-level
+Spearman, and a model-vs-rater comparison on 218 held-out GG1 images where the raters disagree.
+Main finding: the frame is detected in 59 % of Weilburger Grenze (WG1 — not Rauischholzhausen) and
+0.1 % of DSV images; a visual check shows different camera setups (DSV: other camera, frame fills
+the photo; WG1: taken from farther away). Both OOD sets are worse than a constant predictor in MAE.
+Still not done: stratification by soil type, and separating rating-habit differences between sites
+from visual domain shift (not possible with the available labels).
+
 ### 6. Perform genotype analysis
 
 Status: partially complete (2026-09-21), simplified from this spec.
@@ -211,6 +221,18 @@ Only after the clean in-domain and OOD evaluations are complete:
 Do not include unknown groups in a resistance leaderboard.
 
 Done: `scripts/build_resistance_leaderboard.py` aggregates predictions to plot level (step 1) with zero `unknown` groups (step 5/final requirement), and separately reports a genotype-level view restricted to the 7 genotypes (of 217) with >=2 plot-group replicates (step 4, partially — replication is required, but not stratified by location/experiment/date/BBCH). See `outputs/tables/plot_resistance_leaderboard.csv` and `outputs/tables/genotype_resistance_subset.csv`, and `analyses/PRE_REPORT_FIXES_PLAN.md` item 5. **Not done**: step 3 (restricting comparisons to compatible location/experiment/date/BBCH conditions), formal uncertainty reporting, and a direct comparison of predicted vs. expert-score genotype rankings. Given the frozen manifest only has 7 genotypes with any replication at all, a fuller analysis along these lines would likely need the larger, less-curated image pool rather than more analysis of the current 470-image set — treat as future work, not a quick follow-up.
+
+### 7. Ranking-based training (the chosen research direction)
+
+Status: complete (2026-09-27). `scripts/train_joint_ranking.py` trains `joint_weighted_seed{42,43,44}`
+with `JointRankingRegressionLoss` (Huber + margin ranking, margin 5, lambda 0.5) and otherwise the
+exact aggregation-experiment settings. Consistently better than pure regression on all seeds
+(test MAE 2.51 vs 2.62, Spearman 0.781 vs 0.763). See `FINAL_PROJECT_RESULTS.md` §6.
+
+### 8. Whole-image baseline reproduction
+
+Status: complete (2026-09-27). No checkpoint for the reported baseline existed; retraining with Huber
+loss, seed 42 (`outputs/runs/wholeimage_huber_seed42`) reproduced val MAE 5.1265 / test 4.6502 exactly.
 
 ## Completed supporting work
 
