@@ -67,7 +67,8 @@ is resized to $224\times224$ and passed through a frozen DINOv3 ViT-S/16~\cite{d
 embedding goes to a regression head
 $\text{Linear}(384,256)\!\to\!\text{ReLU}\!\to\!\text{Dropout}(0.3)\!\to\!\text{Linear}(256,1)$
 with a sigmoid scaled to $[0,100]$\,\%. At this resolution a seedling covers only a few pixels,
-which motivates the plant-level approach below.
+which motivates the plant-level approach below. The baseline is trained with the Huber loss
+and a single seed (42).
 
 \subsection{Multiple instance learning with area-weighted pooling}
 \label{sec:mil}
@@ -112,9 +113,9 @@ training objective differs.
 \label{sec:ood-method}
 
 To test generalization, we apply all trained models zero-shot, without any fine-tuning or
-recalibration, to three sets that were never used in development: (i) the two field trials
-Weilburger Grenze (JLU WG1, 07.10.2025, BBCH10, 906 scored images) and DSV Asendorf (Trial~1,
-15.--17.09.2025, BBCH11, 897 images); and (ii) the 218 Gro\ss-Gerau images from plots outside the
+recalibration, to three sets that were never used in development: (i) the field trial Weilburger Grenze
+(JLU WG1, 07.10.2025, BBCH10, 906 scored images); (ii) the field trial DSV Asendorf (Trial~1,
+15.--17.09.2025, BBCH11, 897 images); and (iii) the 218 Gro\ss-Gerau images from plots outside the
 training and validation splits on which JLU and GAU disagreed by more than 5 points. The last set
 shares field, date and camera with the training data but has noisy labels, and it lets us compare
 model--rater agreement with rater--rater agreement. The pipeline is run unchanged, and we record

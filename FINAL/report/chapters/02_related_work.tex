@@ -11,7 +11,7 @@ such as brown pitting and soil seen through a hole.
 used to classify or regress plant traits from images~\cite{kamilaris2018deep}. Self-supervised
 backbones such as DINOv2~\cite{oquab2023dinov2} and DINOv3~\cite{dinov3} provide strong frozen
 features, so only a small head has to be trained, which suits small labelled sets. These models
-work at a fixed input resolution around $224\times224$, however, which is far too low for
+are usually applied at around $224\times224$ pixels, however, which is far too low for
 millimetre-sized lesions on seedlings in a full field image.
 
 \paragraph{Multiple instance learning.} In MIL, a label is given for a bag of instances but not
@@ -29,5 +29,5 @@ with a regression loss.
 \paragraph{Domain shift in agricultural vision.} Models trained on one field, season or set of
 lighting conditions often degrade sharply elsewhere. For example, a plant disease classifier with
 over 99\,\% accuracy on laboratory images dropped to about 31\,\% on field images~\cite{mohanty2016using},
-and multi-site datasets such as the Global Wheat Head Dataset were created precisely to measure
+and multi-site datasets such as the Global Wheat Head Dataset were created to measure
 this effect~\cite{david2020global}. We therefore evaluate on unseen trials without any adaptation.

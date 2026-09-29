@@ -24,18 +24,14 @@ a seedling covers less than 1\,\% of the image, and a shot hole only a few dozen
 simply resizing the image for a standard backbone destroys the signal. Finally, the model has to
 work on new fields with different soil, lighting and plant age.
 
-We compare three families of approaches on this problem:
-\begin{itemize}
-  \item \textbf{Classical computer vision}: frame detection, colour-based plant segmentation and a
-        direct measurement of damaged pixels, plus an RF-DETR hole/pitting detector trained on a
-        small annotated set.
-  \item \textbf{Whole-image regression}: the frozen DINOv3 baseline suggested in the project brief.
-  \item \textbf{Multiple instance learning (MIL)}: each image is a bag of plant regions; a frozen
-        DINOv3 embeds each plant, a shared head scores it, and the plant scores are averaged with
-        weights proportional to visible plant area. We compare this with uniform pooling and
-        attention-based MIL, and add the pairwise ranking loss that was our chosen research
-        direction.
-\end{itemize}
+We compare three families of approaches on this problem. The first is classical computer vision:
+frame detection, colour-based plant segmentation and a direct measurement of damaged pixels, plus
+an RF-DETR hole/pitting detector trained on a small annotated set. The second is whole-image
+regression with a frozen DINOv3 backbone, the baseline suggested in the project brief. The third
+is multiple instance learning (MIL), where each image is a bag of plant regions: a frozen DINOv3
+embeds each plant, a shared head scores it, and the plant scores are averaged with weights
+proportional to visible plant area. We compare this with uniform pooling and attention-based MIL,
+and add a pairwise ranking loss, which was our chosen research direction.
 
 Our contributions are: (i) a leakage-safe benchmark on the 470 reliable images with plot-grouped
 splits and a test set that stayed closed during development; (ii) evidence that plant-level MIL

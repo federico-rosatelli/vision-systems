@@ -39,11 +39,11 @@ RF-DETR hole/pitting detector     & 8 val.\ images & mAP@50 3.5\,\%         & ex
 \end{tabular}
 \end{table}
 
-\paragraph{Frame and plant regions work.} The frame was found in all audited images, and the plant
+\paragraph{Frame and plant regions.} The frame was found in all audited images, and the plant
 masks were judged a good approximation of visible leaf area in all 40 images, so they are safe to
 use as MIL weights. The green mask does, however, miss strongly discoloured tissue.
 
-\paragraph{Direct damage measurement fails on holes.} Against the expert score, the direct damage
+\paragraph{Direct damage measurement.} Against the expert score, the direct damage
 percentage reaches Spearman $\rho = 0.64$ (Pearson $r = 0.46$, $n=40$), but this comes almost
 entirely from pitting: the pitting share alone gives $\rho = 0.63$, the hole share only $0.20$.
 In manual review the hole detections were unusable in all 40 images, because dark soil seen
@@ -52,20 +52,20 @@ soil-aware rule did not resolve this. The measurement also underestimates damage
 order of magnitude (mean 0.55\,\% vs.\ 10.2\,\% expert score), mostly because eaten leaf edges
 cannot be measured from the remaining leaf shape (Figure~\ref{fig:qualitative}b).
 
-\paragraph{Leaf counting fails because of the damage.} A convexity-defect lobe counter split a
+\paragraph{Leaf counting.} A convexity-defect lobe counter split a
 single damaged cotyledon pair into three or four ``leaves'': a feeding notch at the leaf edge is
-geometrically indistinguishable from the notch between two leaves. The damage we want to measure
-thus breaks the feature, most of all at BBCH10.
+geometrically indistinguishable from the notch between two leaves. The feature therefore fails exactly
+on the damaged plants, especially at BBCH10.
 
-\paragraph{RF-DETR: a pipeline bug, then a weak signal.} The first detector reached only
-0.4\,\% mAP@50, which we initially attributed to too little data. Plotting the tiled ground truth
-revealed the real cause: the tiling script loaded images with automatic EXIF rotation (36 of the 40
+\paragraph{RF-DETR detector.} The first detector reached only
+0.4\,\% mAP@50, and at first we assumed there was simply too little data. Plotting the tiled ground truth
+showed a bug instead: the tiling script loaded images with automatic EXIF rotation (36 of the 40
 images are rotated by 180$^\circ$), while the box coordinates referred to the unrotated image, so
 almost every box pointed at soil. After the fix, mAP@50 rose to 3.5\,\% (peak 10\,\% during
 training), and predictions now lie on real leaf damage (Figure~\ref{fig:qualitative}c). With only
 283 training boxes on $\sim$18\,px objects, and only 61 for pitting, the detector remains far from
-usable; we estimate that 150--300 annotated images per class would be needed. The general lesson is
-to check a negative result for pipeline bugs before blaming the amount of data.
+usable; we estimate that 150--300 annotated images per class would be needed. In hindsight, we
+should have visualized the training tiles before training.
 
 \begin{figure}[tb]
 \centering
@@ -116,35 +116,36 @@ MIL, area-weighted + ranking loss & $\mathbf{2.66} \pm 0.04$ & $\mathbf{0.859} \
 \end{tabular}
 \end{table}
 
-\paragraph{The whole-image baseline does not learn the task.} Its test MAE of 4.65 is worse than
+\paragraph{Whole-image baseline.} Its test MAE of 4.65 is worse than
 always predicting the median (4.01), its test correlation is slightly negative, and it orders
 only 46\,\% of clearly different image pairs correctly, which is chance level. Its predictions
 stay in a narrow band around the mean (SD 2.3 vs.\ 5.6 for the test labels). At $224\times224$ a whole
-frame of seedlings shrinks to a few pixels per plant (Figure~\ref{fig:qualitative}b), so the
-damage is simply not visible to the backbone.
+frame of seedlings shrinks to a few pixels per plant, so the
+damage is not visible to the backbone.
 
-\paragraph{Plant-level MIL solves it.} All MIL variants reduce the error of the constant predictor
-by 35--50\,\% and reach test $\rho$ between 0.76 and 0.81, with over 92\,\% of clearly different pairs
-ordered correctly. Since the backbone and the head are the same, the gain comes entirely from
-looking at the plants at full resolution instead of the downsampled photograph.
+\paragraph{Plant-level MIL.} All MIL variants reduce the error of the constant predictor
+by 35--40\,\% and reach test $\rho$ between 0.76 and 0.81, with over 92\,\% of clearly different pairs
+ordered correctly. Since the backbone and the head are the same, the gain comes from cropping
+to the frame and looking at each plant at full resolution instead of the downsampled photograph.
 
-\paragraph{Pooling: small differences, and validation and test disagree.} On validation,
+\paragraph{Choice of pooling.} On validation,
 area-weighted pooling was best on both metrics and very stable across seeds, so we selected it
-before opening the test set, as the supervisor suggested. On the test set, however, uniform pooling
+before opening the test set. On the test set, however, uniform pooling
 is clearly better (MAE 2.40 vs.\ 2.62, $\rho$ 0.81 vs.\ 0.76), consistently over all seeds, and the
-attention variants lie in between. We report this honestly rather than re-selecting on test. One
-plausible explanation comes from how the labels were produced: according to the project partners,
+attention variants lie in between. We keep the model selected on validation and do not re-select on the
+test set. A possible explanation comes from how the labels were produced: according to the project partners,
 the raters most likely score each plant and \emph{average over plants}, which is exactly uniform
 pooling. Area weighting encodes a different target, namely the damaged share of the total leaf
-area. With 66 validation and 73 test images, the ranking between the pooling rules is not settled;
-what is settled is that fixed pooling is at least as good as learned attention here.
+area. With 66 validation and 73 test images, we cannot say which pooling rule is better,
+but fixed pooling was at least as good as learned attention in all our runs.
 
-\paragraph{Val--test gap.} For the selected area-weighted model, test $\rho = 0.765$ is lower than
-validation $\rho = 0.855$, while the MAE is similar (2.60 vs.\ 2.67). The bootstrap 95\,\% interval
-of the test $\rho$ is $[0.62, 0.86]$ and contains the validation value, so with 73 images the gap
-is consistent with sampling noise. A second model trained independently by another team member
-with the same configuration gives almost identical test results (MAE 2.59, $\rho$ 0.764), which
-confirms that the pipeline is reproducible.
+\paragraph{Gap between validation and test.} For the selected area-weighted model, test $\rho = 0.763$ is
+lower than validation $\rho = 0.853$ (means over three seeds), while the MAE is similar (2.62 vs.\
+2.69). For seed 42, the bootstrap 95\,\% interval of the test $\rho$ is $[0.62, 0.86]$ and contains
+the validation value, so with 73 images the gap is consistent with sampling noise. A second model
+trained independently by another team member with the same configuration gives almost the same
+test results as seed 42 (MAE 2.59 vs.\ 2.60, $\rho$ 0.764 vs.\ 0.765), so the results are
+reproducible.
 
 \subsection{Ranking-based training}
 \label{sec:res-ranking}
@@ -153,8 +154,8 @@ Adding the pairwise margin ranking loss to the area-weighted model improves ever
 validation and test, and does so for each of the three seeds (last row of Table~\ref{tab:main}):
 test MAE drops from 2.62 to 2.51 and test $\rho$ rises from 0.763 to 0.781, with a smaller spread
 across seeds. The improvement is small compared with the confidence intervals of a single run, so
-we see it as a consistent but modest gain. It supports the idea behind this direction: with
-subjective labels, knowing which of two images is more damaged carries useful information beyond
+we see it as a consistent but modest gain. This fits the motivation for the
+ranking loss: with subjective labels, the order of two images still carries information beyond
 the exact scores. The ranking loss can be combined with any pooling rule; we only tested it with
 area weighting.
 
@@ -165,7 +166,7 @@ area weighting.
 \centering
 \small
 \caption{Zero-shot generalization of the area-weighted MIL model (mean over 3 seeds; SD of
-$\rho$ $\leq 0.011$). ``Frame'': share of images where the frame was detected. ``Plants'': mean
+$\rho$ $\leq 0.02$). ``Frame'': share of images where the frame was detected. ``Plants'': mean
 number of plant regions per image.}
 \label{tab:ood}
 \begin{tabular}{@{}lrcccccc@{}}
@@ -186,14 +187,14 @@ As the supervisor pointed out, the small test set says little about generalizati
 images. We therefore applied the models without any adaptation to three further sets
 (Table~\ref{tab:ood}, Figure~\ref{fig:scatter}).
 
-\paragraph{Images the raters disagree on.} The 218 Gro\ss-Gerau images from plots outside the
+\paragraph{Images with rater disagreement.} The 218 Gro\ss-Gerau images from plots outside the
 training and validation splits whose JLU and GAU scores differ by more than 5 points have the same
 field, date and camera as the training data, but noisier and much higher labels (mean 20\,\% vs.\
 7\,\%). The model ranks them reasonably ($\rho = 0.60$) but underestimates high damage, since it
-has hardly seen scores above 20\,\% during training. Remarkably, the model agrees with each
+has hardly seen scores above 20\,\% during training. Interestingly, the model agrees with each
 individual rater ($\rho = 0.50$ with JLU, $0.55$ with GAU) far better than the two raters agree
-with each other ($\rho = 0.27$, $r = 0.17$) on these images, where JLU scored on average more than twice as high as GAU (27.4\,\% vs.\ 12.8\,\%). Within its own domain, the model is
-therefore at least as consistent as a human rater.
+with each other ($\rho = 0.27$, $r = 0.17$) on these images, where JLU scored on average more than twice as high as GAU (27.4\,\% vs.\ 12.8\,\%). This suggests that within its own domain
+the model is about as consistent as a single human rater.
 
 \paragraph{New field trials.} On Weilburger Grenze and DSV the model fails. On Weilburger Grenze it
 is essentially uncorrelated with the scores and slightly worse than a constant predictor (MAE 4.32
@@ -204,8 +205,8 @@ better on these sets (all $\rho \leq 0.07$ on Weilburger Grenze and $\leq 0.27$ 
 the three images of each plot, as a breeder would, does not help either (plot-level
 $\rho = -0.01$ and $0.23$).
 
-\paragraph{Why the transfer fails.} Inspecting the images shows that the main problem is the
-\emph{recording setup}, not only the model (Figure~\ref{fig:ood-examples}). At DSV a different
+\paragraph{Reasons for the failed transfer.} Looking at the images, most of the problem seems to come from the
+\emph{recording setup} (Figure~\ref{fig:ood-examples}). At DSV a different
 camera was used, the frame fills the whole photo and has rounded corners, and the frame detector
 found it in only 1 of 897 images. At Weilburger Grenze the photos were taken from much farther
 away, so the frame covers only part of the image and many plants lie outside it; the frame was
