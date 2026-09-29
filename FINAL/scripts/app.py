@@ -123,6 +123,17 @@ from src.preprocessing.frame_crop import detect_frame, crop_frame_interior
 from src.preprocessing.plant_regions import extract_plant_regions
 from src.preprocessing.biological_features import analyze_plant_biology, draw_biology_overlay
 from src.models.mil_model import DINOv3MILRegressor
+from src.models.dinov3_regressor import DINOv3Regressor
+
+DINOV3_WEIGHTS_DIR = ROOT_DIR / "weights" / "dinov3-vits16-hf"
+
+
+def _resolve_weights_path(path: str | None) -> str | None:
+    """Checkpoints store the DINOv3 path relative to FINAL/; resolve it so the app works from any cwd."""
+    if not path:
+        return path
+    p = Path(path)
+    return str(p if p.is_absolute() else ROOT_DIR / p)
 
 
 @st.cache_data
@@ -161,29 +172,6 @@ def load_embedding_cache(cache_path: Path):
     return {}
 
 
-class WholeImageBaselineModel(nn.Module):
-    """Whole-image baseline regressor using frozen embedding extractor and MLP head."""
-    def __init__(self, head_weights_dict, embed_dim=384, head_width=256):
-        super().__init__()
-        self.regression_head = nn.Sequential(
-            nn.Linear(embed_dim, head_width),
-            nn.ReLU(),
-            nn.Dropout(p=0.3),
-            nn.Linear(head_width, 1),
-        )
-        # Load weights into regression_head
-        filtered_sd = {}
-        for k, v in head_weights_dict.items():
-            if k.startswith("regression_head."):
-                filtered_sd[k.replace("regression_head.", "")] = v
-        if filtered_sd:
-            self.regression_head.load_state_dict(filtered_sd)
-
-    def forward_feature(self, feat):
-        logits = self.regression_head(feat)
-        return (100.0 * torch.sigmoid(logits)).squeeze(-1)
-
-
 @st.cache_resource
 def load_trained_model(model_name_key: str):
     """
@@ -194,12 +182,15 @@ def load_trained_model(model_name_key: str):
     - rfdetr_hole_pitting
     """
     if model_name_key in ["baseline_regression_seed42", "baseline_regression_mse_seed42"]:
-        ckpt_path = OUTPUTS_DIR / "checkpoints" / "best_model.pth"
+        ckpt_path = RUNS_DIR / "wholeimage_huber_seed42" / "checkpoints" / "best_model.pth"
+        if not ckpt_path.exists():
+            ckpt_path = OUTPUTS_DIR / "checkpoints" / "best_model.pth"
         if not ckpt_path.exists():
             return None, {"type": "whole_image", "name": model_name_key}
         try:
             checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-            model = WholeImageBaselineModel(checkpoint["model_state_dict"])
+            model = DINOv3Regressor("dinov3_vits16", weights_path=str(DINOV3_WEIGHTS_DIR))
+            model.load_state_dict(checkpoint["model_state_dict"], strict=False)
             model.eval()
             return model, {"type": "whole_image", "name": model_name_key, "loss": "huber" if "mse" not in model_name_key else "mse"}
         except Exception as e:
@@ -219,8 +210,14 @@ def load_trained_model(model_name_key: str):
             return None, {"type": "mil", "name": model_name_key}
         try:
             checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-            model_config = checkpoint.get("model_config", {})
+            model_config = dict(checkpoint.get("model_config", {}))
+            model_config["local_weights_path"] = _resolve_weights_path(model_config.get("local_weights_path"))
             model = DINOv3MILRegressor(**model_config)
+            if model.backbone is None:
+                st.error(
+                    f"DINOv3 backbone not found at `{model_config.get('local_weights_path')}`. "
+                    "Live predictions need the weights (see README); only cached benchmark images will work."
+                )
             model.load_state_dict(checkpoint["model_state_dict"], strict=False)
             model.eval()
             return model, {"type": "mil", "name": model_name_key, "config": model_config}
@@ -1172,27 +1169,22 @@ elif nav_choice == "🔬 Live Inference":
                 is_whole_image = active_model_info.get("type") == "whole_image"
 
                 if is_whole_image:
-                    st.caption("Executing **Whole-Image Downsampled Regression**: Frame is resized directly to 224x224 px without instance localization.")
+                    st.caption("Executing **Whole-Image Downsampled Regression**: the full photo is resized directly to 224x224 px without frame crop or instance localization.")
                     # Whole image forward pass
-                    crop_224 = cv2.resize(interior_crop, (224, 224), interpolation=cv2.INTER_AREA)
-                    crop_rgb = cv2.cvtColor(crop_224, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-                    crop_norm = (crop_rgb - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
-                    crop_tensor = torch.from_numpy(crop_norm).permute(2, 0, 1).unsqueeze(0).float()
-
-                    # Spatial pooling fallback feature extractor
-                    N, C, H, W = crop_tensor.shape
-                    grid = nn.functional.adaptive_avg_pool2d(crop_tensor, (8, 16)).reshape(N, -1)
-                    if grid.shape[1] < 384:
-                        pad = torch.zeros(N, 384 - grid.shape[1])
-                        grid = torch.cat([grid, pad], dim=1)
-                    feat_whole = grid[:, :384]
-
+                    # Same preprocessing as training (src/data/dataset.py): full photo, no EXIF
+                    # transpose, no frame crop, resized to 224x224 and ImageNet-normalized.
                     if active_model is not None:
+                        if hasattr(source_to_process, "seek"):
+                            source_to_process.seek(0)
+                        with Image.open(source_to_process) as img_full:
+                            full_rgb = img_full.convert("RGB").resize((224, 224), Image.BILINEAR)
+                        full_np = (np.asarray(full_rgb, dtype=np.float32) / 255.0 - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
+                        full_tensor = torch.from_numpy(full_np).permute(2, 0, 1).unsqueeze(0).float()
                         with torch.no_grad():
-                            pred_val = active_model.forward_feature(feat_whole)
-                            predicted_score = float(pred_val.item())
+                            predicted_score = float(active_model(full_tensor).item())
                     else:
-                        predicted_score = 7.38  # Empirical whole-image constant prediction
+                        st.error("Whole-image baseline checkpoint not found; no prediction available.")
+                        predicted_score = 0.0
                 else:
                     st.caption("Executing **Multiple Instance Learning (MIL)**: Plant patch feature bags aggregated via area weights or neural attention.")
                     cached_bag = bag_cache.get(selected_filename) if bag_cache else None

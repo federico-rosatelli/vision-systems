@@ -11,6 +11,13 @@ over seeds 42, 43 and 44. As references, predicting the training mean (7.38\,\%)
 (5.0\,\%) for every image gives a validation MAE of 5.45 / 5.41 and a test MAE of 4.45 / 4.01.
 A model has to beat these numbers to be useful.
 
+The web demo accompanying this report (Streamlit app and video) was recorded before the final
+evaluation. It shows validation results and earlier single-seed runs, on which area-weighted pooling
+was the best method, and labels the Weilburger Grenze trial as ``Rauischholzhausen''. In addition, a
+feature-extraction bug in the app made the live predictions shown in the video incorrect (e.g.\
+53.5\,\% for an image rated 2.25\,\%); the offline pipeline predicts 2.0\,\% and 10.2\,\% for the
+two demo images. The results in this section supersede all numbers shown in the demo.
+
 \subsection{Classical computer vision}
 \label{sec:res-classical}
 
