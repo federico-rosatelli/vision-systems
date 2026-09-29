@@ -2,6 +2,8 @@
 
 Lab Vision Systems (MA-INF 4308), University of Bonn
 
+**Final report and demo video:** [Google Drive folder](https://drive.google.com/drive/folders/15my71BUyC346ksATji6mAB_NKftLYRYn?usp=share_link)
+
 ## Authors
 
 - Emrullah Dagkusu (Matr.-Nr. 50268560)
@@ -10,7 +12,9 @@ Lab Vision Systems (MA-INF 4308), University of Bonn
 ## Project
 
 The final project is in [`FINAL/`](FINAL/): code in `src/` and `scripts/`, configs in `configs/`,
-results in `outputs/`, and the LaTeX report in `report/`. Build the report with
+results in `outputs/`, and the LaTeX source of the report in `report/`. The compiled report
+(`Dagkusu_Rosatelli_LabVisionSystems_Report.pdf`) is in the Drive folder linked above.
+To build it from source, run
 `cd FINAL/report && pdflatex main && bibtex main && pdflatex main && pdflatex main`.
 A full command reference is in [`FINAL/analyses/COMMANDS.md`](FINAL/analyses/COMMANDS.md).
 
@@ -25,8 +29,8 @@ pip install -r requirements.txt
 
 ## Model weights
 
-The weights are not tracked in git. Download them from our Google Drive folder:
-https://drive.google.com/drive/folders/15my71BUyC346ksATji6mAB_NKftLYRYn?usp=share_link
+The weights are not tracked in git. Download them from our
+[Google Drive folder](https://drive.google.com/drive/folders/15my71BUyC346ksATji6mAB_NKftLYRYn?usp=share_link).
 
 | File | Place it at (inside `FINAL/`) |
 | :--- | :--- |
