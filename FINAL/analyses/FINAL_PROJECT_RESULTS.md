@@ -219,6 +219,8 @@ Audits evaluating classical computer vision algorithms as exploratory, explainab
 
 **Correction (2026-09-21):** the RF-DETR result above was originally 0.39% mAP@50 and attributed to "too little training data." That was largely wrong: `src/preprocessing/tile_hole_pitting_coco.py` read images with `PIL.Image.open()`, which auto-applies EXIF orientation, while the annotation coordinates are in the raw (un-rotated) pixel frame used everywhere else in this codebase — decorrelating essentially every box from its tile image. Fixing the image I/O to use `cv2` (matching the annotation frame) and retraining improved mAP@50 ~9x (0.39% → 3.47%), with qualitatively sane predictions. The two annotated classes are imbalanced (`shot_hole`: 222 train boxes, `pitting`: only 61); reaching a usable detector (mAP@50 ~30-50%) would likely need ~150-300 annotated images per class, 5-10x the current 40 — out of scope for this project's remaining time. See `analyses/HOLE_PITTING_ANNOTATION_PLAN.md` section 5 for the full investigation, four labeled/predicted example figures, and the data-requirement estimate.
 
+**Weights:** `checkpoint_best_total.pth` is available on [Google Drive](https://drive.google.com/drive/folders/15my71BUyC346ksATji6mAB_NKftLYRYn?usp=share_link); place it at `outputs/rfdetr_hole_pitting/checkpoint_best_total.pth` (usage in `analyses/COMMANDS.md` section 9c).
+
 ---
 
 ## 9. Complete Project JSON Configuration Suite

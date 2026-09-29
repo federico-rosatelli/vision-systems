@@ -209,6 +209,35 @@ cd report && pdflatex main && bibtex main && pdflatex main && pdflatex main
 
 ---
 
+## 9c. RF-DETR Hole/Pitting Detector (pretrained weights)
+
+The trained weights (`checkpoint_best_total.pth`, 116 MB) are not tracked in git. Download them from Google Drive:
+https://drive.google.com/drive/folders/15my71BUyC346ksATji6mAB_NKftLYRYn?usp=share_link
+
+Place the file at `outputs/rfdetr_hole_pitting/checkpoint_best_total.pth` (this is the default path used by the scripts and `configs/rfdetr_hole_pitting_eval.json`).
+
+```bash
+pip install rfdetr
+mkdir -p outputs/rfdetr_hole_pitting
+mv ~/Downloads/checkpoint_best_total.pth outputs/rfdetr_hole_pitting/
+
+# Render labeled/predicted example figures
+python scripts/render_rfdetr_hole_pitting_examples.py
+```
+
+Use in Python (the model must be loaded as `RFDETRNano`, the size it was trained with):
+
+```python
+from rfdetr import RFDETRNano
+from PIL import Image
+
+model = RFDETRNano(pretrain_weights="outputs/rfdetr_hole_pitting/checkpoint_best_total.pth")
+dets = model.predict(Image.open("image.jpg"), threshold=0.5)
+print(dets.xyxy, dets.class_id, dets.confidence)
+```
+
+---
+
 ## 10. Automated Test Suite (pytest)
 
 Run automated unit tests to verify data contracts, configuration parsing, preprocessing functions, and model architectures.
